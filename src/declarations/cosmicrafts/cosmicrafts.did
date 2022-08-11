@@ -36,6 +36,7 @@ type PlayerPreferences =
    gamePlayerData: text;
    language: nat;
    playerChar: text;
+   playerCharID: nat;
  };
 type PlayerName = text;
 type PlayerId = principal;
@@ -63,7 +64,8 @@ type GamesPlayed = nat;
 type GameStatus = 
  record {
    clientAvatar: nat;
-   clientIcon: text;
+   clientDeck: vec nat;
+   clientIcon: nat;
    clientLastAlive: nat64;
    clientLvl: nat;
    clientXp: nat;
@@ -73,7 +75,8 @@ type GameStatus =
    gameStep: nat;
    gameWinner: nat;
    masterAvatar: nat;
-   masterIcon: text;
+   masterDeck: vec nat;
+   masterIcon: nat;
    masterLastAlive: nat64;
    masterLvl: nat;
    masterXp: nat;
@@ -89,10 +92,11 @@ type Cosmicrafts =
    cancelGame: (nat) -> (bool);
    checkUsernameAvailable: (UserName) -> (bool) query;
    checkWalletExists: (UserWallet, text) -> (bool) query;
-   createGame: (text, text, text, nat, nat, nat, text, nat64, text, text) ->
-    (GameStatus);
+   createGame: (text, text, nat, vec nat, nat, nat, nat, text, nat64, 
+    text, text) -> (GameStatus);
    createPlayer: (text, text, text) -> (bool);
-   findGame: (text, text, text, nat, nat, nat, text, nat64) -> (GameStatus);
+   findGame: (text, text, nat, vec nat, nat, nat, nat, text, nat64) ->
+    (GameStatus);
    getAllUsers: () -> (vec Users) query;
    getClientLastAlive: (nat) -> (nat64) query;
    getGameInProgressData: (nat) -> (GameStatus) query;
@@ -108,9 +112,9 @@ type Cosmicrafts =
    getUserMatchData: (nat) -> (P2Status) query;
    getUserPreferences: (text) -> (text) query;
    getUserProgress: (text) -> (opt Users) query;
-   principalToString: () -> (principal);
+   principalToString: () -> (principal) query;
    saveMatchLastAlive: (nat, nat64) -> (bool);
-   savePlayerCharacter: (text) -> (bool);
+   savePlayerCharacter: (nat) -> (bool);
    savePlayerLanguage: (nat) -> (bool);
    savePlayerPreferences: (text) -> (bool);
    savePlayerScore: (nat) -> (bool, text);

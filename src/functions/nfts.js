@@ -4,10 +4,13 @@ import { tokenUrl }           from "@vvv-interactive/nftanvil-tools/cjs/token.js
 
 import { accountCanister }    from "@vvv-interactive/nftanvil-canisters/cjs/account.js";
 
-import artNFTs from "../nft-anvil/resources/artnfts.json";
-import testNFTs from "../nft-anvil/resources/game_nfts_test.json"; /// a00fdafece4bfb0e25dc7eccd5a757ddcb32691a6d567fab56d48bb0dcadd8a8
+//import artNFTs from "../nft-anvil/resources/artnfts.json";
+//import testNFTs from "../assets/game_nfts_test.json"; /// a00fdafece4bfb0e25dc7eccd5a757ddcb32691a6d567fab56d48bb0dcadd8a8
+import shipNFTs from "../assets/ships_gamenfts/data.json";
+import charactersNFTs from "../assets/characters_gamenfts/data.json";
 
 export const getMine = async (map, aID) => {
+  console.log("AID NFTS", aID);
     if (!aID) return null;
     
     let address = aID;
@@ -51,12 +54,13 @@ export const getMine = async (map, aID) => {
     return final;
   };
 
-export const getNFTsData = (_showMine, myNFTsIDs, filterQuality, prices, sortBy) => {
+export const getNFTsData = (_showMine, myNFTsIDs, filterQuality, prices, sortBy, type = 1) => {
+  let _nftsList = (type === 1) ? shipNFTs : charactersNFTs;
     let nftcut = (_showMine && myNFTsIDs !== null)
-      ? testNFTs.filter((x) => {
+      ? _nftsList.filter((x) => {
           return myNFTsIDs.indexOf(x[0]) !== -1;
         })
-      : testNFTs;
+      : _nftsList;
       
       let filtered = nftcut.filter((x) => {
         if (filterQuality == -1) return true;
@@ -118,7 +122,7 @@ const parserFormat = (arr) => {
     return _f;
 };
 
-export const structureNFTsForUnity = async (allMyNFTs, map) => {
+export const structureNFTsForUnity = (allMyNFTs, map) => {
     let _nfts = allMyNFTs;
     let shipsData = [];
     let charactersData = [];
@@ -139,6 +143,7 @@ export const structureNFTsForUnity = async (allMyNFTs, map) => {
             "Rarity": _nfts[i][0].quality,
             "EntType": _att.EntType,
             "LocalID": _att.LocalID,
+            //"LocalID": 1,
             "Level": _att.Level,
             "Name": _tags[0]
           };
@@ -188,4 +193,166 @@ export const structureNFTsForUnity = async (allMyNFTs, map) => {
       spellsData: spellsData
     }
     return res;
+};
+
+export const structureNFTsForMP = (ids, map) => {
+  let shipsData = [];
+  let charactersData = [];
+  let spellsData = [];
+  for(let i = 0; i < ids.length; i++){
+    let id = parseInt(ids[i]);
+    let data = getNFTData(id);
+    //let url = tokenUrl(map.space, _nfts[i][0], "thumb");
+    let url = tokenUrl(map.space, data[0], "content");
+    let _att = parserFormat(data[4]);
+    let _tags = data[5];
+    switch(_att.EntType){
+      case 0:
+        let _char = {
+          "ID": data[0],
+          "NameID": data[2],
+          "Description": data[3],
+          "IconURL": url,
+          "Faction": _att.Faction,
+          "Rarity": data[1],
+          "EntType": _att.EntType,
+          "LocalID": _att.LocalID,
+          //"LocalID": 1,
+          "Level": _att.Level,
+          "Name": _tags[0]
+        };
+        charactersData.push(_char); 
+        break;
+      case 1:
+        let _spell = {
+          "ID": data[0],
+          "NameID": data[2],
+          "Description": data[3],
+          "IconURL": url,
+          "Faction": _att.Faction,
+          "Rarity": data[1],
+          "EntType": _att.EntType,
+          "LocalID": _att.LocalID,
+          "Level": _att.Level,
+          "Name": _tags[0],
+          "EnergyCost": _att.EnergyCost
+        };
+        spellsData.push(_spell); 
+        break;
+      case 2: case 3:
+        let _ship = {
+          "ID": data[0],
+          "NameID": data[2],
+          "Description": data[3],
+          "IconURL": url,
+          "Faction": _att.Faction,
+          "Rarity": data[1],
+          "EntType": _att.EntType,
+          "LocalID": _att.LocalID,
+          "Level": _att.Level,
+          "Name": _tags[0],
+          "EnergyCost": _att.EnergyCost,
+          "HitPoints": _att.HitPoints,
+          "Shield": _att.Shield,
+          "Speed": parseFloat(_att.Speed)/100,
+          "Dammage": _att.Dammage
+        };
+        shipsData.push(_ship); 
+        break;
+    }
+  }
+  let res = {
+    charactersData: charactersData,
+    shipsData: shipsData,
+    spellsData: spellsData
+  }
+  return res;
+};
+
+const getNFTData = (id) => {
+  for(let i = 0; i < shipNFTs.length; i++){
+    if(shipNFTs[i][0] === id){
+      return shipNFTs[i];
+    }
+  }
+  for(let i = 0; i < charactersNFTs.length; i++){
+    if(charactersNFTs[i][0] === id){
+      return charactersNFTs[i];
+    }
+  }
+  return null;
+};
+
+export const structureBetaNFTClaimed = (id, index, map, arrFromat) => {
+  let data = getNFTData(id);
+  console.log("Full NFT", data);
+  console.log(data[0]);
+  let url = tokenUrl(map.space, data[0], "content");
+  let _att = parserFormat(data[4]);
+  let _tags = data[5];
+  switch(_att.EntType){
+    case 0:
+      let _c = {
+        "ID": parseInt(index),
+        "NameID": data[2],
+        "Description": data[3],
+        "IconURL": url,
+        "Faction": parseInt(_att.Faction),
+        "Rarity": parseInt(data[1]),
+        "EntType": parseInt(_att.EntType),
+        "LocalID": parseInt(_att.LocalID),
+        "Level": parseInt(_att.Level),
+        "Name": _tags[0]
+      };
+      if(arrFromat === true){
+        return [_c];
+      } else {
+        return _c;
+      }
+      break;
+    case 1:
+      let _s = {
+        "ID": parseInt(index),
+        "NameID": data[2],
+        "Description": data[3],
+        "IconURL": url,
+        "Faction": parseInt(_att.Faction),
+        "Rarity": parseInt(data[1]),
+        "EntType": parseInt(_att.EntType),
+        "LocalID": parseInt(_att.LocalID),
+        "Level": parseInt(_att.Level),
+        "Name": _tags[0],
+        "EnergyCost": parseInt(_att.EnergyCost),
+      };
+      if(arrFromat === true){
+        return [_s];
+      } else {
+        return _s;
+      }
+      break;
+    case 2: case 3:
+      let _p = {
+        "ID": parseInt(index),
+        "NameID": data[2],
+        "Description": data[3],
+        "IconURL": url,
+        "Faction": parseInt(_att.Faction),
+        "Rarity": parseInt(data[1]),
+        "EntType": parseInt(_att.EntType),
+        "LocalID": parseInt(_att.LocalID),
+        "Level": parseInt(_att.Level),
+        "Name": _tags[0],
+        "EnergyCost": parseInt(_att.EnergyCost),
+        "HitPoints": parseInt(_att.HitPoints),
+        "Shield": parseInt(_att.Shield),
+        "Speed": parseFloat(_att.Speed)/100,
+        "Dammage": parseInt(_att.Dammage)
+      };
+      if(arrFromat === true){
+        return [_p];
+      } else {
+        return _p;
+      }
+      break;
+  }
 };

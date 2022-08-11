@@ -11,23 +11,33 @@ import { AuthClient } from "@dfinity/auth-client";
 import { StoicIdentity } from "ic-stoic-identity";
 
 import { idlFactory } from "../declarations/cosmicrafts";
+import { createActor as betaNFTsActor } from "../declarations/nfts_beta_test";
 
 const canisterId = "onhpa-giaaa-aaaak-qaafa-cai";
-const whitelist = [canisterId, "fo275-uiaaa-aaaai-qe3lq-cai"];
+const betaCanisterId = "k7h5q-jyaaa-aaaan-qaaaq-cai";
+const whitelist = [canisterId, betaCanisterId, "fo275-uiaaa-aaaai-qe3lq-cai"];
+const host ='https://mainnet.dfinity.network';
 
 // INTERNET IDENTITY
-export const loginII = async () => {
+export const loginII = async (setAII) => {
+  console.log("Loggin in II");
     const authClient = await AuthClient.create();
     if (await authClient.isAuthenticated()) {
-      return authClient.getIdentity();
+      setAII(authClient);
     } else {
-      await authClient.login({
+      console.log("Not authenticated");
+      return await authClient.login({
         onSuccess: async () => {
-          return authClient.getIdentity();
+          setAII(authClient);
         },
       });
     }
 };
+
+export const handleAuthenticated = async (authClient) => {
+  const identity = await authClient.getIdentity();
+  return identity;
+}
 
 // STOIC IDENTITY
 export const loginStoic = async () => {
@@ -69,12 +79,13 @@ export const loginStoic = async () => {
 
 // PLUG WALLET
 export const loginPlug = async () => {
-    const isConnected = await window.ic.plug.requestConnect({
-        whitelist,
-    });
+    let connection = await window.ic.plug.requestConnect({ whitelist });
+    console.log("Plug connection:", connection);
     const principalId = await window.ic.plug.agent.getPrincipal();
     var principal = principalId.toString();
     console.log(principal);
+    return principal;
+    
     ////setUserW(principal);
     /*let address, subaccount;
 
@@ -96,10 +107,25 @@ export const loginPlug = async () => {
     //console.log("ADDRESS ", address);
     //console.log("SUBACCOUNT", subaccount);
     //saveLoggedData(principal, "Plug");
-  };
+};
+
+/// INFINITY WALLET
+export const loginInfinityWallet = async () => {
+  try {
+    const publicKey = await window.ic.infinityWallet.requestConnect({whitelist, host});
+    const principalId = await window.ic.infinityWallet.agent.getPrincipal();
+    var principal = principalId.toString();
+    console.log(principal);
+    return principal;
+  } catch (e) {
+    console.log("e", e);
+    alert("Your Wallet session has expired. Please check your login in their app and then reload this page");
+  }
+};
 
 export const getMap = async () => {
     let _map = await router.config_get();
+    console.log("Map config get", _map);
     _map.router = _map.router.toString();
     _map = BigIntToString(_map);
     return _map;
@@ -107,6 +133,13 @@ export const getMap = async () => {
 
 export const getAID = async (identity) => {
     return principalToAccountIdentifier(identity.getPrincipal().toString(), 0);
+};
+
+export const getAIDpopup = async (principal) => {
+  console.log("AID FROM", principal);
+  let _aid = principalToAccountIdentifier(principal, 0);
+  console.log(_aid);
+  return _aid;
 };
 
 export const getCanister = async (identity) => {
@@ -121,4 +154,13 @@ export const getCanister = async (identity) => {
 };
 export const getPlayerAddress = async () => {
    return AccountIdentifier.ArrayToText(getSubAccountArray(0));
+};
+export const getBetaNFTsCanister = async (identity) => {
+  console.log("IDENTITY FOR BETA CANISTER", identity);
+  const _betaNFTsCanister = betaNFTsActor(betaCanisterId, {agentOptions: {
+    host: 'https://mainnet.dfinity.network',
+    identity,
+  }});
+  console.log("BETA CANISTER", _betaNFTsCanister);
+  return _betaNFTsCanister;
 };

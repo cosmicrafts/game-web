@@ -3,23 +3,28 @@ import Unity, { UnityContext } from "react-unity-webgl";
 
 /// Game functions
 import { AppContext } from "./context";
-import { getMine, getNFTsData, structureNFTsForUnity } from "./functions/nfts";
-import { loginII, loginStoic, loginPlug, getMap, getAID, getCanister, getPlayerAddress } from "./functions/login";
+import { getMine, getNFTsData, structureNFTsForUnity, structureBetaNFTClaimed, structureNFTsForMP } from "./functions/nfts";
+import { loginII, handleAuthenticated, loginStoic, loginPlug, loginInfinityWallet, getMap, getAID, getAIDpopup, getCanister, getPlayerAddress, getBetaNFTsCanister } from "./functions/login";
 
 /// CANISTERS
 import { nftCanister }             from "@vvv-interactive/nftanvil-canisters/cjs/nft.js";
 import * as _principal             from "@vvv-interactive/nftanvil-tools/cjs/principal.js";
+import { idlFactory as betaCan }   from "./declarations/nfts_beta_test/nfts_beta_test.did.js";
+import { idlFactory as cosmicCan } from "./declarations/cosmicrafts/cosmicrafts.did.js";
 /// TOOLS
 import { decodeLink }     from "@vvv-interactive/nftanvil-tools/cjs/data.js";
 import * as AccountIdentifier from "@vvv-interactive/nftanvil-tools/cjs/accountidentifier.js";
 import { encodeTokenId, decodeTokenId, tokenToText } from "@vvv-interactive/nftanvil-tools/cjs/token.js";
 
 const unityContext = new UnityContext({
-  loaderUrl: "Build/CosmicraftsGame.loader.js",
-  dataUrl: "Build/CosmicraftsGame.data",
-  frameworkUrl: "Build/CosmicraftsGame.framework.js",
-  codeUrl: "Build/CosmicraftsGame.wasm",
+  loaderUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.loader.js",
+  dataUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.data",
+  frameworkUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.framework.js",
+  codeUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.wasm",
 });
+
+const betaCanisterId = "k7h5q-jyaaa-aaaan-qaaaq-cai";
+const canisterId = "onhpa-giaaa-aaaak-qaafa-cai";
 
 function App() {
   //const [user, setUser] = useState(null); /// For game
@@ -32,21 +37,24 @@ function App() {
         identity, setIdentity
       } = useContext(AppContext);
   const [playerAddress, setPlayerAddress] = useState(null);
-  const [icp, setIcp] = useState(0);
   const [player, setPlayer] = useState(null);
   const [playerName, setPlayerName] = useState("");
   const [walletService, setWalletService] = useState("");
   const [unityPlayerData, setUnityPlayerData] = useState(null);
+  const [aII, setAII] = useState(null);
+  const [plugID, setPlugID] = useState(null);
+  const [iwID, setIWID] = useState(null);
+  const [pop, setPop] = useState(null); /// Pop-up from InfinityWallet and Plug Wallet
 
-  useEffect(() => {}, [player, playerName, walletService]);
-  useEffect(() => { console.log("Unity Player Data", unityPlayerData); if(unityPlayerData !== null) { sendDataToUnity(); } }, [unityPlayerData]);
-  
   /// In game data
   const [isLoading, setIsLoading] = useState(true);
   const [prog, setProg] = useState(0);
   const [game, setGame] = useState({});
   const [gameId, setGameId] = useState(0); /// For IC
   const [playerWinner, setPlayerWinner] = useState(0);
+  const [playerPrincipal, setPlayerPrincipal] = useState(null);
+  const [gameManagerActive, setGameManagerActive] = useState(false);
+  const [dashboardSet, setDashboardSet] = useState(false);
   
   /// NFTs
   const [prices, setPrices] = useState(false);
@@ -54,63 +62,202 @@ function App() {
   const [sortBy, setSortBy] = useState("priceasc");
   const [walletToSend, setWalletToSend] = useState("");
   const [giftlink, setGiftlink] = useState("");
+  const [betaNFTsCanister, setBetaNFTsCanister] = useState(null);
+  const [betaNFTsCodes, setBetaNFTsCodes] = useState(null);
+
+  /// Useful info
+  /** Unity
+   * LoginCanvas, onNameData
+   * 0 = Ask for player's name
+   * 1 = Send to main menu
+   * 2 = Send to claim NFTs screen
+   * 3 = User not registered or approved
+   */
   
   useEffect(() => { if(cosmicrafts !== null && player === null) {getOrSetPlayer();} }, [cosmicrafts]);
+
+  useEffect(() => { if(betaNFTsCanister !== null) { } }, [betaNFTsCanister]);
   
-  useEffect(() => { if(identity !== null && identity !== undefined) { console.log("IDENTITY", identity); generateMap(); } }, [identity]);
+  useEffect(() => { if(identity !== null && identity !== undefined) { console.log("IDENTITY", identity, identity.getPrincipal().toString()); generateMap(false); } }, [identity]);
+
+  useEffect(() => { if(aII !== null) { iiLogin(); } }, [aII]);
+
+  useEffect(() => {}, [playerPrincipal]);
+
+  useEffect(() => { if(plugID !== null) { generatePlugCan(); } }, [plugID]);
+
+  useEffect(() => { if(iwID !== null) { generateIWCan(); } }, [iwID]);
+
+  useEffect(() => {}, [playerName, walletService, gameManagerActive]);
+
+  useEffect(() => { if(player !== null) { initializeGame(); } }, [player]);
+
+  useEffect(() => { if(map !== null && aID !== null) { console.log("AID", aID); getMyNFTs(); } }, [map, aID]);
+
+  useEffect(() => { console.log("Unity Player Data", unityPlayerData); if(unityPlayerData !== null) { sendDataToUnity(); } }, [unityPlayerData]);
+
+  useEffect(() => { if(pop !== null) { generateAID(); } }, [pop]);
+  
+  /// NFTs
+  useEffect(() => {
+    if(myNFTsIDs !== []){
+      let _ships = getNFTsData(true, myNFTsIDs, filterQuality, prices, sortBy, 1);
+      let _chars = getNFTsData(true, myNFTsIDs, filterQuality, prices, sortBy, 2);
+      let _aNFTs = _ships.concat(_chars);
+      let _nfts = structureNFTsForUnity(_aNFTs, map);
+      setAllMyNFTs(_nfts);
+    }
+  }, [myNFTsIDs]);
+
+  useEffect(() => {
+    console.log("allMyNFTs effect", allMyNFTs);
+    if(allMyNFTs !== [] && allMyNFTs.length > 0){
+      if(allMyNFTs.charactersData.length < 1 || allMyNFTs.shipsData.length < 8) {
+        console.log("Unfinished claiming");
+        sendPlayerToFinishClaiming();
+        return false;
+      } else {
+        unityContext.send("LoginCanvas", "OnNameData", 1);
+      }
+    }
+  }, [allMyNFTs]);
 
   let lastCheck = 0;
   let enemyLastAlive = 0;
   let timeoutWait = 30;
   let inGame = false;
 
+  const getMyNFTs = async () => {
+    setMyNFTsIDs(await getMine(map, aID, setMyNFTsIDs));
+  };
+
+
+  ////////// START //////////
+
+  /* PLAYER ENTERS THE FIRST SCREEN OF THE GAME TO SELECT WALLET*/
   /// Login
+  /// Receive player's wallet chosen
   unityContext.on("JSWalletsLogin", (walletSelected) => {
     login(walletSelected);
   });
+  /// Proceed depending on wallet service
   const login = async (walletSelected) => {
     switch(walletSelected){
-      case "identityWallet":
-        setIdentity(await loginII());
+      case "identityWallet": /// Internet Identity
         setWalletService("II");
+        await loginII(setAII);
         break;
-      case "stoicWallet":
+      case "stoicWallet": /// Stoic Identity
         setIdentity(await loginStoic());
         setWalletService("Stoic");
         break;
-      case "PlugWallet":
-        setAID(await loginPlug());
+      case "plugWallet": /// Plug wallet
+        let _id = await loginPlug();
+        setPlayerPrincipal(_id);
+        setPlugID(_id);
         setWalletService("Plug");
         break;
-      default:
-        setAID(await loginII());
-        setWalletService("E_II");
+      case "infinityWallet": /// Infinity Swap
+        let _idIW = await loginInfinityWallet();
+        console.log("IW", _idIW);
+        setPlayerPrincipal(_idIW);
+        setIWID(_idIW);
+        setWalletService("InfinityWallet");
+        break;
+      default: /// Other
+        console.log("Error on wallet selected");
+        alert("Error on wallet selected");
+        window.location.reload(false);
         break;
     }
   };
 
+  /// Generate Account Identifier
+  /// This is set with a useEffect[pop] to check if we have an identity or a principal
   const generateAID = async () => {
-    setAID(await getAID(identity));
+    console.log("pop", pop);
+    if(pop === false){ // II && Stoic
+      setAID(await getAID(identity));
+      return true;
+    } 
+    if(pop === true){ // IW && Plug
+      setAID(await getAIDpopup(playerPrincipal));
+      return true;
+    }
+    /// pop === null
+    return false;
   };
-  const generateMap = async () => {
+
+  /// Internet Identity (II)
+  const iiLogin = async () => {
+    setIdentity(await handleAuthenticated(aII));
+  };
+
+  /// II & Stoic
+  const generateMap = async (_pop) => {
     setMap(await getMap());
-    generateAID();
-    generateCanister();
-    generatePlayerAddress();
-  };
-  const generateCanister = async () => {
-    setCosmicrafts(await getCanister(identity));
+    setPop(_pop);
+    await generatePlayerAddress();
+    if(_pop === false){
+      generateCanister();
+    }
   };
   const generatePlayerAddress = async () => {
     setPlayerAddress(await getPlayerAddress());
   };
-  
-  /// NFTs
-  useEffect(() => {
-    if(myNFTsIDs !== []){
-      setAllMyNFTs(getNFTsData(true, myNFTsIDs, filterQuality, prices, sortBy));
+  const generateCanister = async () => {
+    setBetaNFTsCanister(await getBetaNFTsCanister(identity));
+    setCosmicrafts(await getCanister(identity));
+  };
+
+  ///Plug wallet
+  const generatePlugCan = async () => {
+    (async () => {
+      const _betaNFTsCanister = await window.ic.plug.createActor({
+        canisterId: betaCanisterId,
+        interfaceFactory: betaCan,
+      });
+      setBetaNFTsCanister(_betaNFTsCanister);
+      setWalletService("Plug");
+      const _cosmicraftsCanister = await window.ic.plug.createActor({
+        canisterId: canisterId,
+        interfaceFactory: cosmicCan,
+      });
+      setCosmicrafts(_cosmicraftsCanister);
+      await generateMap(true);
+    })()
+  };
+
+  const generateIWCan = async () => {
+    try{
+      (async () => {
+        const _betaNFTsCanister = await window.ic.infinityWallet.createActor({
+          canisterId: betaCanisterId,
+          interfaceFactory: betaCan,
+        });
+        setBetaNFTsCanister(_betaNFTsCanister);
+        setWalletService("InfinitySwap");
+        const _cosmicraftsCanister = await window.ic.infinityWallet.createActor({
+          canisterId: canisterId,
+          interfaceFactory: cosmicCan,
+        });
+        setCosmicrafts(_cosmicraftsCanister);
+        await generateMap(true);
+      })()
+    } catch(e){
+      console.log("IW E", e);
+      alert("Your Wallet session has expired. Please login again in their app and then reload this page");
     }
-  }, [myNFTsIDs]);
+  };
+  
+
+  const getBetaNFTsList = async () => {
+    let _prev  = await betaNFTsCanister.getBetaData();
+    console.log("Previously assigned codes", _prev);
+    let _codes = await betaNFTsCanister.getAllCodes();
+    console.log("All codes", _codes[0]);
+    setBetaNFTsCodes(_codes[0]);
+  };
 
   const nft_transfer = async _ref4 => {
     let {
@@ -195,16 +342,6 @@ function App() {
     return t;*/
   };
 
-  const claimGift = async () => {
-    if(giftlink !== ""){
-      console.log("CODE", giftlink);
-      let _r = await nft_claim_link(giftlink);
-      console.log("Claimed", _r);
-    } else {
-      alert("Invalid code");
-    }
-  }
-
   const nft_claim_link = async (code) => {
     let {
       slot,
@@ -236,12 +373,6 @@ function App() {
     return resp;
   };
 
-  useEffect(() => {
-    if(allMyNFTs.length > 0){
-      //
-    }
-  }, [allMyNFTs]);
-
   const sendNFT = async (nft) => {
     console.log("NFT TO SEND", nft);
     /**/
@@ -249,25 +380,88 @@ function App() {
     let toAddress = walletToSend;
     nft_transfer({ id, toAddress })
   };
-  
 
+  unityContext.on("JSClaimNft", (index) => {
+    getNFTCode(index);
+    console.log("Claim:",index,"-");
+  });
+
+  unityContext.on("JSClaimAllNft", (indexes) => {
+    claimBatchNFTs(indexes);
+  });
+
+  unityContext.on("JSGoToMenu", () => {
+    /// After claiming all NFTs, load player's data and send user to main menu
+    sendDataToUnity();
+  });
+
+  const getNFTCode = async (index) => {
+    let _code = getCodeFromIndex(index);
+    let _r = await nft_claim_link(_code.code);
+    console.log("Claimed", _r);
+    console.log("Structurate", _code, index, map);
+    let _data = structureBetaNFTClaimed(parseInt(_code.id), index, map, true);
+    getMyNFTs();
+    unityContext.send("NFTs Reward", "OnClaimNFTCompleted", JSON.stringify(_data));
+  };
+
+  const getCodeFromIndex = (index) => {
+    if(index < 8){ 
+      return betaNFTsCodes.nftsCodes[index];
+    } else {
+      return betaNFTsCodes.nftChar;
+    }
+  };
+
+  const claimBatchNFTs = async (indexes) => {
+    console.log(indexes);
+    try{
+      let _indexes = indexes.split(",");
+      let _ships = [];
+      for(let i = 0; i < _indexes.length; i++){
+        let _code = getCodeFromIndex(_indexes[i]);
+        let _r = await nft_claim_link(_code.code);
+        console.log("Claimed", _r);
+        console.log("Structurate", _code, _indexes[i], map);
+        let _data = structureBetaNFTClaimed(parseInt(_code.id), _indexes[i], map, false);
+        _ships.push(_data);
+      }
+      getMyNFTs();
+      unityContext.send("NFTs Reward", "OnClaimNFTCompleted", JSON.stringify(_ships));
+    } catch(e){
+      console.log("Failed while reading array of indexes", e);
+    }
+  };
 
   const getOrSetPlayer = async () => {
-    let _player = await cosmicrafts.getPlayer();
-    if(_player === null || _player.length === 0){
-      unityContext.send("LoginCanvas", "OnNameData", 0);
-      /// Assign new NFTs to account
-      return false;
+    try{
+      let _player = await cosmicrafts.getPlayer();
+      if(_player === null || _player.length === 0){
+        let _approved = await betaNFTsCanister.getBetaPlayer();
+        console.log("appr", _approved);
+        if(_approved !== undefined && _approved !== null && _approved.length > 0 && parseInt(_approved[0].allowed) === 1){
+          await getBetaNFTsList();
+          unityContext.send("LoginCanvas", "OnNameData", 0);
+        } else {
+          unityContext.send("LoginCanvas", "OnNameData", 3);
+        }
+        return false;
+      } else {
+        console.log("Player already exists", _player);
+        setPlayer(_player[0]);
+      }
+    } catch(e){
+      alert("Your Wallet session has expired. Please login again in their app and then reload this page");
     }
-    unityContext.send("LoginCanvas", "OnNameData", 1);
-    setMyNFTsIDs(await getMine(map, aID, setMyNFTsIDs));
-    setPlayer(_player[0]);
-    initializeGame(_player[0]);
+  };
+
+  const sendPlayerToFinishClaiming = async () => {
+    await getBetaNFTsList();
+    unityContext.send("LoginCanvas", "OnNameData", 2);
   };
 
   /// New Player
   unityContext.on("JSLoginPanel", (newPlayerName) => {
-    console.log("New name", newPlayerName);
     setPlayerName(newPlayerName);
   });
   useEffect(() => {
@@ -278,75 +472,93 @@ function App() {
   const createPlayer = async () => {
     if(playerName !== ""){
       console.log(aID, playerName, walletService);
-      let _player = await cosmicrafts.createPlayer(aID, playerName, walletService);
-      unityContext.send("LoginCanvas", "OnNameData", 1);
-      setPlayer(_player[0]);
-      initializeGame(_player[0]);
+      let _newPlayer = await cosmicrafts.createPlayer(aID, playerName, walletService);
+      if(_newPlayer){
+        let _player = await cosmicrafts.getPlayer();
+        setPlayer(_player[0]);
+        ////unityContext.send("LoginCanvas", "OnNameData", 2); /// Unnecesary?
+      } else {
+        console.log("No player created");
+        alert("Error creating player, please try agan");
+      }
     } else {
-      alert("The player's name is not valid");
+      alert("Invalid name");
     }
   };
 
-
-  /// Initial data to Unity
-  const sendDataToUnity = async () => {
-    let _nfts = await structureNFTsForUnity(allMyNFTs, map);
-    setAllMyNFTs(_nfts);
-    console.log("ALL NFTS");
-    console.log(_nfts);
-    if(_nfts.charactersData.length > 0) {unityContext.send("Dashboard", "GL_SetCollectionCharactersData", JSON.stringify(_nfts.charactersData));}
-    if(_nfts.shipsData.length > 0)      {unityContext.send("Dashboard", "GL_SetCollectionUnitsData", JSON.stringify(_nfts.shipsData));}
-    if(_nfts.spellsData.length > 0)     {unityContext.send("Dashboard", "GL_SetCollectionSkillsData", JSON.stringify(_nfts.spellsData));}
-    let _pref = await cosmicrafts.getPlayerPreferences();
-    let score = await cosmicrafts.getPlayerScore();
-    _pref = (_pref !== null && _pref.length > 0 && _pref[0].playerChar !== "") ? _pref[0] : { playerChar: JSON.stringify({"Name": _nfts.charactersData[0].Name, "IconURL": _nfts.charactersData[0].Icon}), gamePlayerData : JSON.stringify({"language": 0}) };
-    score = (score.ok !== undefined) ? parseInt(score.ok) : 0;
-    let _prog = JSON.stringify({"Xp": 0, "Level": 0, "BattlePoints": score});
-    console.log("GL_SetPlayerData", unityPlayerData);
-    console.log("GL_SetCharacterSelected", _nfts.charactersData[0].LocalID);
-    console.log("GL_SetConfigData", _pref.gamePlayerData);
-    console.log("GL_SetProgressData", _prog);
-    unityContext.send("Dashboard", "GL_SetPlayerData", JSON.stringify(unityPlayerData));
-    unityContext.send("Dashboard", "GL_SetCharacterSelected", _nfts.charactersData[0].LocalID);
-    unityContext.send("Dashboard", "GL_SetConfigData", _pref.gamePlayerData);
-    unityContext.send("Dashboard", "GL_SetProgressData", _prog);
-    console.log("ALL SENT");
-    setIsLoading(false);
-  };
-
-
-
-  /// Communication with Unity
-  const saveScore = async (score) => {
-    let saved = await cosmicrafts.savePlayerScore(score);
-    console.log("SCORE", saved);
-  };
-    
-
-  const initializeGame = async (_player) => {
-    if(_player !== null){
+  /// Set Player for Unity
+  const initializeGame = async () => {
+    if(player !== null){
       localStorage.removeItem("cosmic_user");
       let _unityPlayerData = {
-        "WalletId": _player.aid,
-        "NikeName": _player.playerName
+        "WalletId": player.aid,
+        "NikeName": player.playerName
       };
       setUnityPlayerData(_unityPlayerData);
     }
   };
 
+  /// Initial data to Unity
+  const sendDataToUnity = async () => {
+    if(allMyNFTs.charactersData.length < 1 || allMyNFTs.shipsData.length < 8) {
+      console.log("Unfinished claiming");
+      await getBetaNFTsList();
+      unityContext.send("LoginCanvas", "OnNameData", 2);
+      return false;
+    }
+    unityContext.send("LoginCanvas", "OnNameData", 1);
+  };
+
+  unityContext.on("DashboardStarts", () => {
+    if(dashboardSet === false){
+      waitForDashboardToLoad();
+    }
+  });
+
+  /// ASK FRENZY FOR A FUNCTION WHICH TELLS ME THAT DASHBOARD IS READY TO RECEIVE DATA INSTEAD OF THE TIMEOUT
+  const waitForDashboardToLoad = async () => {
+    if(allMyNFTs.charactersData.length > 0) { unityContext.send("Dashboard", "GL_SetCollectionCharactersData", JSON.stringify(allMyNFTs.charactersData)); }
+    if(allMyNFTs.shipsData.length > 0)      { unityContext.send("Dashboard", "GL_SetCollectionUnitsData", JSON.stringify(allMyNFTs.shipsData));           }
+    if(allMyNFTs.spellsData.length > 0)     { unityContext.send("Dashboard", "GL_SetCollectionSkillsData", JSON.stringify(allMyNFTs.spellsData));         }
+    let _pref = await cosmicrafts.getPlayerPreferences();
+    let score = await cosmicrafts.getPlayerScore();
+    /*_pref = (_pref !== null && _pref.length > 0 && _pref[0].playerChar !== "") ? 
+            _pref[0] 
+          : 
+            { playerChar: JSON.stringify({"Name": allMyNFTs.charactersData[0].Name, "IconURL": allMyNFTs.charactersData[0].Icon}), gamePlayerData : JSON.stringify({"language": 0}) };
+    */
+    console.log("pref", _pref);
+    score = (score.ok !== undefined) ? parseInt(score.ok) : 0;
+    //// PENDING TO GET REAL LEVEL, XP AND BattlePoints
+    let _prog = JSON.stringify({"Xp": 0, "Level": 0, "BattlePoints": score});
+    let _lang = (_pref[0].gamePlayerData === "") ? JSON.stringify({"language": 0}) : _pref[0].gamePlayerData;
+    let _char = (parseInt(_pref[0].playerCharID)   === 0 ) ? allMyNFTs.charactersData[0].ID : parseInt(_pref[0].playerCharID);
+    console.log("GL_SetPlayerData", unityPlayerData);
+    console.log("GL_SetCharacterSelected", allMyNFTs.charactersData[0].ID);
+    console.log("GL_SetConfigData", _lang);
+    console.log("GL_SetProgressData", _prog);
+    unityContext.send("Dashboard", "GL_SetPlayerData", JSON.stringify(unityPlayerData));
+    unityContext.send("Dashboard", "GL_SetCharacterSelected", _char);
+    unityContext.send("Dashboard", "GL_SetConfigData", _lang);
+    unityContext.send("Dashboard", "GL_SetProgressData", _prog);
+    console.log("ALL SENT");
+    setIsLoading(false);
+    setDashboardSet(true);
+  };
+
+
+  //////////////////////// Communication with Unity ////////////////////////////////////
+    ///// Unity default functions
     unityContext.on("loaded", () => {
-      //
+      // When game has loaded all files
     });
-
-    unityContext.on("SaveScore", (score) => {
-        saveScore(score);
-        inGame = false;
-    });
-
     unityContext.on("progress", (progression) => {
-        setProg(progression);
+      /// Game's loading progression
+      setProg(progression);
     });
 
+    
+    /// Game functions
     //// MP
       unityContext.on("SearchGame", (json) => {
           let data = JSON.parse(json);
@@ -373,8 +585,9 @@ function App() {
           saveUserCharacter(json);
       });
       /// Save User's character on IC
-      const saveUserCharacter = async (json) => {
-          let _c = await cosmicrafts.savePlayerCharacter(json);
+      const saveUserCharacter = async (idNFT) => {
+        console.log("Save users character", idNFT);
+        let _c = await cosmicrafts.savePlayerCharacter(idNFT);
       };
 
       const cancelGame = async (gameId) => {
@@ -401,9 +614,24 @@ function App() {
         console.log(gameId);
     }, [gameId]);
 
+    const getCharacter = (id) => {
+      let nfts = structureNFTsForMP([id], map);
+      return nfts.charactersData[0];
+    };
+
+    const getDeckNFTs = (ids) => {
+      let nfts = structureNFTsForMP(ids, map);
+      console.log("NFTs structured", nfts);
+      return nfts.shipsData;
+    };
+
     const createGame = async (data, gameStatus) => {
         const _time = new Date();
-        let _game = await cosmicrafts.createGame(data.WalletId, data.NikeName, data.CharacterKey, data.Xp, data.Level, data.Avatar, gameStatus, _time.getTime(), _time.toISOString().split('T')[0], _time.toISOString().split('T')[0]);
+        console.log("Create new game!");
+        let _game = await cosmicrafts.createGame(data.WalletId, data.NikeName, data.CharacterNFTId, data.DeckNFTsId, data.Xp, data.Level, data.Avatar, gameStatus, _time.getTime(), _time.toISOString().split('T')[0], _time.toISOString().split('T')[0]);
+        let masterCharacter = getCharacter(_game.masterIcon);
+        let masterDeck = getDeckNFTs(_game.masterDeck);
+        console.log("Master", masterCharacter, masterDeck);
         let _g = {
             "GameId": parseInt(_game.gameId),
             "GameStep": parseInt(_game.gameStep),
@@ -417,14 +645,17 @@ function App() {
             "ClientXp": parseInt(_game.clientXp),
             "MasterAvatar": parseInt(_game.masterAvatar),
             "ClientAvatar": parseInt(_game.clientAvatar),
-            "MasterCharacter": _game.masterIcon,
-            "ClientCharacter": _game.clientIcon,
+            "MasterCharacter": masterCharacter, /// Full structure for P1's Hero NFT
+            "ClientCharacter": null, /// Full structure for P2's Hero NFT, null at this poins as no player has joined this game
+            "MasterDeck": masterDeck, /// Full structure for P1's NFTs deck
+            "ClientDeck": null, /// Full structure for P2's NFTs deck, null at this poins as no player has joined this game
             "masterLastAlive": parseInt(_time.getTime()),
             "clientLastAlive": parseInt(_game.clientLastAlive),
             "GameStart": _game.GameStartTime,
             "LastUpdate": _game.gameLastUpdate,
             "GameWinner": parseInt(_game.gameWinner)
         };
+        console.log("create _g", _g);
         if(_g.GameId != 0){
             setGameId(_g.GameId);
             setGame(_g);
@@ -439,7 +670,11 @@ function App() {
 
     const searchGame = async (data, gameStatus) => {
         const _time = new Date();
-        let _game = await cosmicrafts.findGame(data.WalletId, data.NikeName, data.CharacterKey, data.Xp, data.Level, data.Avatar, String(_time.getTime()), _time.getTime());
+        let _game = await cosmicrafts.findGame(data.WalletId, data.NikeName, parseInt(data.CharacterNFTId), data.DeckNFTsId, data.Xp, data.Level, data.Avatar, String(_time.getTime()), _time.getTime());
+        let masterCharacter = (parseInt(_game.masterIcon) !== 0) ? getCharacter(parseInt(_game.masterIcon)) : null;
+        let clientCharacter = (parseInt(_game.clientIcon) !== 0) ? getCharacter(parseInt(_game.clientIcon)) : null;
+        let masterDeck = (_game.masterDeck !== []) ? getDeckNFTs(_game.masterDeck) : null;
+        let clientDeck = (_game.clientDeck !== []) ? getDeckNFTs(_game.clientDeck) : null;
         let _g = {
             "GameId": parseInt(_game.gameId),
             "GameStep": parseInt(_game.gameStep),
@@ -453,14 +688,17 @@ function App() {
             "ClientXp": parseInt(_game.clientXp),
             "MasterAvatar": parseInt(_game.masterAvatar),
             "ClientAvatar": parseInt(_game.clientAvatar),
-            "MasterCharacter": _game.masterIcon,
-            "ClientCharacter": _game.clientIcon,
+            "MasterCharacter": masterCharacter, //////// Aquí va a ir la estructura completa del NFT del master
+            "ClientCharacter": clientCharacter, //////// Aquí va a ir la estructura completa del NFT del cliente
+            "MasterDeck": masterDeck, ///////////////////////////////////////////// MasterDeck - nuevo valor - Estructura completa de las naves del deck del master
+            "ClientDeck": clientDeck, ///////////////////////////////////////////// ClientDeck - nuevo valor - Estructura completa de las naves del deck del client
             "masterLastAlive": parseInt(_game.masterLastAlive),
             "clientLastAlive": parseInt(_game.clientLastAlive),
             "GameStart": _game.GameStartTime,
             "LastUpdate": _game.gameLastUpdate,
             "GameWinner": parseInt(_game.gameWinner)
         };
+        console.log("search _g", _g);
         if(_g.GameId != 0){
             setGameId(_g.GameId);
             setGame(_g);
@@ -475,6 +713,10 @@ function App() {
     const getMatchStatus = async (_gm) => {
         if(_gm.GameId != undefined){
             let _game = await cosmicrafts.getGameMatchStatus(_gm.GameId);
+            let masterCharacter = (parseInt(_game.masterIcon) !== 0) ? getCharacter(parseInt(_game.masterIcon)) : null;
+            let clientCharacter = (parseInt(_game.clientIcon) !== 0) ? getCharacter(parseInt(_game.clientIcon)) : null;
+            let masterDeck = (_game.masterDeck !== []) ? getDeckNFTs(_game.masterDeck) : null;
+            let clientDeck = (_game.clientDeck !== []) ? getDeckNFTs(_game.clientDeck) : null;
             if(_game != null && _game.gameId != null && parseInt(_game.gameId) != null && parseInt(_game.gameId) !== 0){
                 let _g = {
                     "GameId": parseInt(_game.gameId),
@@ -489,8 +731,10 @@ function App() {
                     "ClientXp": parseInt(_game.clientXp),
                     "MasterAvatar": parseInt(_game.masterAvatar),
                     "ClientAvatar": parseInt(_game.clientAvatar),
-                    "MasterCharacter": _game.masterIcon,
-                    "ClientCharacter": _game.clientIcon,
+                    "MasterCharacter": masterCharacter,
+                    "ClientCharacter": clientCharacter,
+                    "MasterDeck": masterDeck,
+                    "ClientDeck": clientDeck,
                     "masterLastAlive": parseInt(_game.masterLastAlive),
                     "clientLastAlive": parseInt(_game.clientLastAlive),
                     "GameStart": _game.GameStartTime,
@@ -504,6 +748,7 @@ function App() {
                         cosmicrafts.saveMatchLastAlive(_game.gameId, _time.getTime());
                     }, 200);
                 } else {
+                  console.log("Start game", _g);
                     setGame(_g);
                     inGame = true;
                     getUserMatchData(_game.gameId);
@@ -542,9 +787,14 @@ function App() {
     }
 
     const sendMatchDataGame = () => {
+      /////////// Esto cambiará por NFTs
         let _dataStr = JSON.stringify(game);
         unityContext.send("MatchMulti", "GLGetICPData", _dataStr);
     }
+
+    unityContext.on("GameStarts", () => {
+      setGameManagerActive(true);
+    });
 
     /// If player is Master
         /// Check if p2 has new data
@@ -570,8 +820,8 @@ function App() {
         };
         ///Send p2 data to Master
         const syncMaster = async (data) => {
-            if(inGame === true){
-                unityContext.send("Manager", "GL_SyncMaster", data);
+            if(inGame === true && gameManagerActive === true){ 
+                unityContext.send("GameManager", "GL_SyncMaster", data);
             }
         }
         const sendMasterData = async (data, gameId) => {
@@ -592,7 +842,9 @@ function App() {
         });
         //// Send winner to Master
         const syncWinnerMaster = async () => {
-            unityContext.send("Manager", "GL_SyncWinner", playerWinner);
+          if(gameManagerActive === true){
+            unityContext.send("GameManager", "GL_SyncWinner", playerWinner);
+          }
         }
 
     /// If player is p2
@@ -622,8 +874,8 @@ function App() {
         };
         ///Send Master's data to p2
         const syncUser = async (data) => {
-            if(inGame == true){
-                unityContext.send("Manager", "GL_SyncClient", data);
+            if(inGame == true && gameManagerActive === true){
+              unityContext.send("GameManager", "GL_SyncClient", data);
             }
         }
         const sendClientData = async (data, gameId) => {
@@ -660,15 +912,27 @@ function App() {
             let _gameData = await cosmicrafts.setGameWinner(playerWinner, parseInt(gameId));
         };
 
+        /// Receive score from game end
+        unityContext.on("SaveScore", (score) => {
+          saveScore(score);
+          inGame = false;
+          setGameManagerActive(false);
+        });
+        /// Save the score
+        const saveScore = async (score) => {
+          let saved = await cosmicrafts.savePlayerScore(score);
+          console.log("SCORE", saved);
+        };
+
         //// Go to Main Menu after game
         unityContext.on("ExitGame", (json) => {
             console.log("GAME END");
             inGame = false;
+            setGameManagerActive(false);
             setGame({});
             setGameId(0);
             setPlayerWinner(0);
         });
-
 
   return (
     <>
@@ -679,8 +943,6 @@ function App() {
           width: "100%",
         }} 
       />
-      <input value={giftlink} onChange={(val) => { console.log(val.target.value); setGiftlink(val.target.value); }} placeholder="Gift link" />
-      <button onClick={() => { claimGift(); }}>CLAIM</button>
     </>
   );
 }
