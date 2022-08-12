@@ -24,3 +24,5 @@ yarn-error.log*
 
 /public/Build
 /public/TemplateData
+/src/assets/ships_gamenfts/identity.json
+/src/assets/characters_gamenfts/identity.json

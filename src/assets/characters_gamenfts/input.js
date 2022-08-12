@@ -88,5 +88,41 @@ module.exports = [
     ],
     quality: 1,
     authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gamenfts",
+    name: "Sotzeer",
+    lore: "Draconic rebel",
+    content: "./images/Sotzeer.png",
+    thumb: "./thumb/Sotzeer.png",
+    attributes: {
+      Faction: 2,
+      EntType: 0,
+      LocalID: 4,
+      Level: 1
+    },
+    tags: [
+      "Sotzeer"
+    ],
+    quality: 1,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gamenfts",
+    name: "Sotzeer",
+    lore: "Draconic rebel",
+    content: "./images/Sotzeer.png",
+    thumb: "./thumb/Sotzeer.png",
+    attributes: {
+      Faction: 2,
+      EntType: 0,
+      LocalID: 4,
+      Level: 1
+    },
+    tags: [
+      "Sotzeer"
+    ],
+    quality: 1,
+    authorShare: 500
   }
 ]
