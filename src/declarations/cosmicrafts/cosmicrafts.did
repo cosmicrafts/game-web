@@ -4,33 +4,9 @@ type Wallet =
    "principal": principal;
    walletName: text;
  };
-type Users = 
- record {
-   gamesPlayed: GamesPlayed;
-   gamesWon: GamesWon;
-   highscore: Highscore__1;
-   id: UserId;
-   level: Level;
-   preferences: PlayerPreferences2;
-   score: ScoreCC__1;
-   tokenized: text;
-   user: UserName__1;
-   wallet: UserWallet__1;
- };
-type UserWallet__1 = text;
-type UserWallet = text;
-type UserName__1 = text;
-type UserName = text;
-type UserId = principal;
 type TokenIdentifier = text;
 type ScoreCC__1 = nat;
 type ScoreCC = nat;
-type PlayerPreferences2 = 
- record {
-   gameUserData: text;
-   language: nat;
-   playerChar: text;
- };
 type PlayerPreferences = 
  record {
    gamePlayerData: text;
@@ -44,23 +20,19 @@ type Player =
  record {
    aid: text;
    id: PlayerId;
-   level: Level__1;
+   level: Level;
    linkedWallets: LinkedWallets;
    playerName: PlayerName;
  };
 type P2Status = 
  record {
+   clientScore: ScoreCC__1;
    gameLastUpdate: text;
    lastAlive: nat64;
    status: text;
  };
 type LinkedWallets = vec Wallet;
-type Level__1 = nat;
 type Level = nat;
-type Highscore__1 = nat;
-type Highscore = nat;
-type GamesWon = nat;
-type GamesPlayed = nat;
 type GameStatus = 
  record {
    clientAvatar: nat;
@@ -68,6 +40,7 @@ type GameStatus =
    clientIcon: nat;
    clientLastAlive: nat64;
    clientLvl: nat;
+   clientScore: ScoreCC__1;
    clientXp: nat;
    gameId: nat;
    gameLastUpdate: text;
@@ -79,6 +52,7 @@ type GameStatus =
    masterIcon: nat;
    masterLastAlive: nat64;
    masterLvl: nat;
+   masterScore: ScoreCC__1;
    masterXp: nat;
    player1: text;
    player1Name: text;
@@ -90,14 +64,11 @@ type GameStatus =
 type Cosmicrafts = 
  service {
    cancelGame: (nat) -> (bool);
-   checkUsernameAvailable: (UserName) -> (bool) query;
-   checkWalletExists: (UserWallet, text) -> (bool) query;
    createGame: (text, text, nat, vec nat, nat, nat, nat, text, nat64, 
     text, text) -> (GameStatus);
    createPlayer: (text, text, text) -> (bool);
    findGame: (text, text, nat, vec nat, nat, nat, nat, text, nat64) ->
     (GameStatus);
-   getAllUsers: () -> (vec Users) query;
    getClientLastAlive: (nat) -> (nat64) query;
    getGameInProgressData: (nat) -> (GameStatus) query;
    getGameMatchStatus: (nat) -> (GameStatus) query;
@@ -105,29 +76,17 @@ type Cosmicrafts =
    getPlayer: () -> (opt Player);
    getPlayerPreferences: () -> (opt PlayerPreferences);
    getPlayerScore: () -> (BalanceResponse);
-   getTokenized: (text, text) -> (opt Users);
-   getUser: (text) -> (opt Users) query;
-   getUserCharacter: (text) -> (text) query;
-   getUserLanguage: (text) -> (nat) query;
    getUserMatchData: (nat) -> (P2Status) query;
-   getUserPreferences: (text) -> (text) query;
-   getUserProgress: (text) -> (opt Users) query;
    principalToString: () -> (principal) query;
    saveMatchLastAlive: (nat, nat64) -> (bool);
    savePlayerCharacter: (nat) -> (bool);
    savePlayerLanguage: (nat) -> (bool);
    savePlayerPreferences: (text) -> (bool);
    savePlayerScore: (nat) -> (bool, text);
-   saveUser: (UserName, text, UserWallet) -> (opt Users);
-   saveUserCharacter: (text, text) -> (bool);
-   saveUserLanguage: (text, nat) -> (bool);
-   saveUserPreferences: (text, text) -> (bool);
-   saveUserScore: (text, ScoreCC, Highscore) -> (bool);
-   setGameInProgressData: (text, nat, nat64, text, nat) -> (bool);
-   setGameWinner: (nat, nat) -> (bool);
+   setGameInProgressData: (text, nat, nat64, text, nat, ScoreCC) -> (bool);
+   setGameWinner: (nat, nat, nat) -> (bool);
    setPlayerAlive: (nat, nat64) -> (bool);
-   setTokenized: (text, text) -> (bool);
-   setUserInProgressData: (text, nat, nat64, text) -> (P2Status);
+   setUserInProgressData: (text, nat, nat64, text, ScoreCC) -> (P2Status);
  };
 type CommonError = 
  variant {

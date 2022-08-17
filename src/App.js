@@ -15,16 +15,27 @@ import { idlFactory as cosmicCan } from "./declarations/cosmicrafts/cosmicrafts.
 import { decodeLink }     from "@vvv-interactive/nftanvil-tools/cjs/data.js";
 import * as AccountIdentifier from "@vvv-interactive/nftanvil-tools/cjs/accountidentifier.js";
 import { encodeTokenId, decodeTokenId, tokenToText } from "@vvv-interactive/nftanvil-tools/cjs/token.js";
-
+/*
 const unityContext = new UnityContext({
   loaderUrl: "Build/CosmicraftsGame.loader.js",
   dataUrl: "Build/CosmicraftsGame.data",
   frameworkUrl: "Build/CosmicraftsGame.framework.js",
   codeUrl: "Build/CosmicraftsGame.wasm",
+});*/
+
+const unityContext = new UnityContext({
+  loaderUrl: "http://74.208.24.194/Build/CosmicraftsGame.loader.js",
+  dataUrl: "http://74.208.24.194/Build/CosmicraftsGame.data",
+  frameworkUrl: "http://74.208.24.194/Build/CosmicraftsGame.framework.js",
+  codeUrl: "http://74.208.24.194/Build/CosmicraftsGame.wasm",
 });
+
 
 const betaCanisterId = "k7h5q-jyaaa-aaaan-qaaaq-cai";
 const canisterId = "onhpa-giaaa-aaaak-qaafa-cai";
+
+let gameManagerActive = false;
+let playerIndex = 0;
 
 function App() {
   //const [user, setUser] = useState(null); /// For game
@@ -52,9 +63,8 @@ function App() {
   const [prog, setProg] = useState(0);
   const [game, setGame] = useState({});
   const [gameId, setGameId] = useState(0); /// For IC
-  const [playerWinner, setPlayerWinner] = useState(0);
   const [playerPrincipal, setPlayerPrincipal] = useState(null);
-  const [gameManagerActive, setGameManagerActive] = useState(false);
+  //const [gameManagerActive, setGameManagerActive] = useState(false);
   const [dashboardSet, setDashboardSet] = useState(false);
   
   /// NFTs
@@ -91,9 +101,7 @@ function App() {
 
   useEffect(() => {}, [playerName, walletService]);
 
-  useEffect(() => { console.log("gameManagerActive", gameManagerActive) },[gameManagerActive]);
-
-  useEffect(() => { if(player !== null) { initializeGame(); } }, [player]);
+  useEffect(() => { if(player !== null) { initializeGame(); console.log("Player:", player); } }, [player]);
 
   useEffect(() => { if(map !== null && aID !== null) { console.log("AID", aID); getMyNFTs(); } }, [map, aID]);
 
@@ -211,7 +219,7 @@ function App() {
   const generateCanister = async () => {
     setBetaNFTsCanister(await getBetaNFTsCanister(identity));
     setCosmicrafts(await getCanister(identity));
-    setMultiplayerCanister(await getCanister(identity));
+    setMultiplayerCanister(await getCanister(null));
   };
 
   ///Plug wallet
@@ -492,7 +500,8 @@ function App() {
     if(player !== null){
       localStorage.removeItem("cosmic_user");
       let _unityPlayerData = {
-        "WalletId": player.aid,
+        //"WalletId": player.aid,
+        "WalletId": player.id.toString(),
         "NikeName": player.playerName
       };
       setUnityPlayerData(_unityPlayerData);
@@ -522,21 +531,15 @@ function App() {
     if(allMyNFTs.spellsData.length > 0)     { unityContext.send("Dashboard", "GL_SetCollectionSkillsData",     JSON.stringify(allMyNFTs.spellsData));     }
     let _pref = await cosmicrafts.getPlayerPreferences();
     let score = await cosmicrafts.getPlayerScore();
-    console.log("pref", _pref);
     score = (score.ok !== undefined) ? parseInt(score.ok) : 0;
     //// TO DO: GET REAL LEVEL, XP AND BattlePoints
     let _prog = JSON.stringify({"Xp": 0, "Level": 0, "BattlePoints": score});
     let _lang = (_pref.length > 0 && _pref[0].gamePlayerData !== "") ? _pref[0].gamePlayerData : JSON.stringify({"language": 0});
     let _char = (_pref.length > 0 && parseInt(_pref[0].playerCharID) !== 0 ) ? parseInt(_pref[0].playerCharID) : allMyNFTs.charactersData[0].ID;
-    console.log("GL_SetPlayerData", unityPlayerData);
-    console.log("GL_SetCharacterSelected", allMyNFTs.charactersData[0].ID);
-    console.log("GL_SetConfigData", _lang);
-    console.log("GL_SetProgressData", _prog);
     unityContext.send("Dashboard", "GL_SetPlayerData", JSON.stringify(unityPlayerData));
     unityContext.send("Dashboard", "GL_SetCharacterSelected", _char);
     unityContext.send("Dashboard", "GL_SetConfigData", _lang);
     unityContext.send("Dashboard", "GL_SetProgressData", _prog);
-    console.log("ALL SENT");
     setIsLoading(false);
     setDashboardSet(true);
   };
@@ -556,8 +559,9 @@ function App() {
     /// Game functions
     //// MP
       unityContext.on("SearchGame", (json) => {
-          let data = JSON.parse(json);
-          searchGame(data, json);
+        console.log("Will search game", json);
+        let data = JSON.parse(json);
+        searchGame(data, json);
       });
 
       unityContext.on("CancelGame", (gameId) => {
@@ -601,12 +605,6 @@ function App() {
     }, [game])
 
     useEffect (() => {
-        if(playerWinner > 0){
-            setGameWinner();
-        }
-    }, [playerWinner]);
-
-    useEffect (() => {
         console.log(gameId);
     }, [gameId]);
 
@@ -627,6 +625,7 @@ function App() {
         let masterCharacter = getCharacter(_game.masterIcon);
         let masterDeck = getDeckNFTs(_game.masterDeck);
         console.log("Master", masterCharacter, masterDeck);
+        playerIndex = 1;
         let _g = {
             "GameId": parseInt(_game.gameId),
             "GameStep": parseInt(_game.gameStep),
@@ -683,10 +682,10 @@ function App() {
             "ClientXp": parseInt(_game.clientXp),
             "MasterAvatar": parseInt(_game.masterAvatar),
             "ClientAvatar": parseInt(_game.clientAvatar),
-            "MasterCharacter": masterCharacter, //////// Aquí va a ir la estructura completa del NFT del master
-            "ClientCharacter": clientCharacter, //////// Aquí va a ir la estructura completa del NFT del cliente
-            "MasterDeck": masterDeck, ///////////////////////////////////////////// MasterDeck - nuevo valor - Estructura completa de las naves del deck del master
-            "ClientDeck": clientDeck, ///////////////////////////////////////////// ClientDeck - nuevo valor - Estructura completa de las naves del deck del client
+            "MasterCharacter": masterCharacter, //////// Aquí va la estructura completa del NFT del master
+            "ClientCharacter": clientCharacter, //////// Aquí va la estructura completa del NFT del cliente
+            "MasterDeck": masterDeck, ///////////////////////////////////////////// Estructura completa de las naves del deck del master
+            "ClientDeck": clientDeck, ///////////////////////////////////////////// Estructura completa de las naves del deck del client
             "masterLastAlive": parseInt(_game.masterLastAlive),
             "clientLastAlive": parseInt(_game.clientLastAlive),
             "GameStart": _game.GameStartTime,
@@ -700,6 +699,7 @@ function App() {
             inGame = true;
             getMasterMatchData(_game.gameId);
             userIsAlive(_game.gameId);
+            playerIndex = 2;
         } else {
             createGame(data, gameStatus);
         }
@@ -792,155 +792,170 @@ function App() {
       setGameManagerActive(true);
     });
 
-    /// If player is Master
-        /// Check if p2 has new data
-        const getUserMatchData = async (gameId) => {
-            const _time = new Date();
-            let _pw = 0;
-            let _ud = await multiplayerCanister.getUserMatchData(parseInt(gameId));
-            let _md = await multiplayerCanister.getGameInProgressData(parseInt(gameId));
-            console.log("USER MATCH DATA", _ud);
-            console.log("GAME MATCH DATA", _md);
-            if(_ud.status != ""){
-                enemyLastAlive = parseInt(_ud.lastAlive);
-                lastCheck = _time.getTime();
-                if((enemyLastAlive + timeoutWait * 1000) < lastCheck){
-                    setPlayerWinner(1);
-                    _pw = 1;
-                }
-                syncMaster(_ud.status);
+    const setGameManagerActive = (val) => {
+      gameManagerActive = val;
+      console.log("gameManagerChange", val, gameManagerActive);
+    };
+
+    //////////////////////////////////////
+    /////////////// Master ///////////////
+    //////////////////////////////////////
+      /// Check if p2 has new data
+      const getUserMatchData = async (gameId) => {
+        const _time = new Date();
+        let _ud = await multiplayerCanister.getUserMatchData(parseInt(gameId));
+        if(_ud.status != ""){
+            enemyLastAlive = parseInt(_ud.lastAlive);
+            lastCheck = _time.getTime();
+            if((enemyLastAlive + timeoutWait * 1000) < lastCheck){
+                setGameWinner();
             }
-            if(parseInt(_md.gameStep) == 1 || parseInt(_md.gameStep) == 2){
-                setTimeout(function(){
-                    getUserMatchData(parseInt(gameId));
-                }, 100);
-            }
-        };
-        ///Send p2 data to Master
-        const syncMaster = async (data) => {
-          console.log("Read info from p2 to master", data);
-            if(inGame === true && gameManagerActive === true){
-              console.log("GL_SyncMaster", data);
-                unityContext.send("GameManager", "GL_SyncMaster", data);
-            } else {
-              console.log("NO GL_SyncMaster", "in game", inGame, "gameManagerActive", gameManagerActive);
-            }
+            syncMaster(_ud.status); /// status has the full p2's game data
         }
-        const sendMasterData = async (data, gameId) => {
-          console.log("Saving", data);
-            const _time = new Date();
-            let _dt = JSON.parse(data);
-            let _cd = await multiplayerCanister.setGameInProgressData(data, parseInt(gameId), _time.getTime(), _time.toISOString(), _dt.GameStep);
-            console.log("Saved master", _cd);
-        };
-        unityContext.on("SendMasterData", (data) => {
-          //console.log("Master's data", data);
-            let _d = JSON.parse(data);
-            _d.GameWinner = playerWinner;
-            let _dataJson = JSON.stringify(_d);
-            if(_d.GameStep >= 2){
-                if(playerWinner > 0){
-                    syncWinnerMaster();
-                }
-                console.log("Will save master's data", _d.GameId);
-                sendMasterData(_dataJson, _d.GameId);
-            }
-        });
-        //// Send winner to Master
-        const syncWinnerMaster = async () => {
-          if(gameManagerActive === true){
-            unityContext.send("GameManager", "GL_SyncWinner", playerWinner);
+        let _md = await multiplayerCanister.getGameInProgressData(parseInt(gameId));
+        if(parseInt(_md.gameStep) == 1 || parseInt(_md.gameStep) == 2){
+            setTimeout(function(){
+              getUserMatchData(parseInt(gameId));
+            }, 200);
+        }
+      };
+      ///Send p2 data to Master
+      const syncMaster = async (data) => {
+        if(inGame === true && gameManagerActive === true){
+          unityContext.send("GameManager", "GL_SyncMaster", data);
+        }
+      };
+      unityContext.on("SendMasterData", (data) => {
+        let _d = JSON.parse(data);
+        if(_d.GameStep >= 2){
+          if(_d.GameWinner > 0){
+            endGameForMaster(_d.GameWinner);
+          } else {
+            sendMasterData(data, _d.GameId, _d.MasterScore);
           }
         }
-
-    /// If player is p2
-        /// Check if Master has new data
-        const getMasterMatchData = async (gameId) => {
-            const _time = new Date();
-            let _md = await multiplayerCanister.getGameInProgressData(parseInt(gameId));
-            let _pw = 0;
-            if(_md.status != "" && _time.getTime() > lastCheck){
-                if(parseInt(_md.gameWinner) != 0){
-                    setPlayerWinner(parseInt(_md.gameWinner));
-                }
-                enemyLastAlive = parseInt(_md.masterLastAlive);
-                syncUser(_md.status);
-                lastCheck = _time.getTime();
-                /*//////////////////////////if((enemyLastAlive + timeoutWait * 1000) < lastCheck){
-                    setPlayerWinner(2);
-                    _pw = 2;
-                    saveMasterDisconected(parseInt(gameId));
-                }*/
-            }
-            if(parseInt(_md.gameStep) == 1 || parseInt(_md.gameStep) == 2){
-                setTimeout(function(){
-                    getMasterMatchData(parseInt(gameId));
-                }, 100);
-            }
-        };
-        ///Send Master's data to p2
-        const syncUser = async (data) => {
-            if(inGame == true && gameManagerActive === true){
-              unityContext.send("GameManager", "GL_SyncClient", data);
-            }
+      });
+      /// Game progress
+      const sendMasterData = async (data, gameId, playerScore) => {
+          const _time = new Date();
+          let _dt = JSON.parse(data);
+          console.log("Master's score", playerScore);
+          let _cd = await multiplayerCanister.setGameInProgressData(data, parseInt(gameId), _time.getTime(), _time.toISOString(), _dt.GameStep, playerScore);
+      };
+      /// Game Ends
+      const endGameForMaster = async (_gw) => {
+        await syncWinnerMaster(_gw);
+        await setGameWinner(_gw);
+      };
+      //// Send winner to Master
+      const syncWinnerMaster = async (_pw) => {
+        if(gameManagerActive === true){
+          unityContext.send("GameManager", "GL_SyncWinner", _pw);
         }
-        const sendClientData = async (data, gameId) => {
-            const _time = new Date();
-            let _cd = await multiplayerCanister.setUserInProgressData(data, gameId, _time.getTime(), _time.toISOString());
-        };
-        unityContext.on("SendClientData", (data) => {
-          console.log("Client's data", data);
-            let _d = JSON.parse(data);
-            if(playerWinner == 0){
-                sendClientData(data, parseInt(_d.GameId));
-            }
-        });
-        const userIsAlive = async (gameId) => {
-            let _time = new Date();
-            const _ua = await multiplayerCanister.setPlayerAlive(gameId, _time.getTime());
-            if(playerWinner == 0){
-                setTimeout(function(){
-                    userIsAlive(gameId);
-                }, 5000);
-            }
-        };
+      }
+    //////////////////////////////////////
+    //////////// End Master //////////////
+    //////////////////////////////////////
 
-        //// Disconections
-        const saveMasterDisconected = async (gameId) => {
-            let _gameData = await multiplayerCanister.getGameInProgressData(parseInt(gameId));
-            let _statusTxt = JSON.parse(_gameData.status);
-            _statusTxt.GameWinner = 2;
-            _gameData.status = JSON.stringify(_statusTxt);
-            let _cd = await multiplayerCanister.setGameInProgressData(_gameData.status, parseInt(gameId), _gameData.masterLastAlive, _gameData.gameLastUpdate, _gameData.GameStep);
-            syncUser(_gameData.status);
-        };
+    //////////////////////////////////////
+    /////////////// Client ///////////////
+    //////////////////////////////////////
+      /// Check if Master has new data
+      const getMasterMatchData = async (gameId) => {
+        const _time = new Date();
+        let _md = await multiplayerCanister.getGameInProgressData(parseInt(gameId));
+        console.log("Get game's progress", _md);
+        if(_md.status != "" /*&& _time.getTime() > lastCheck*/){
+          if( _md.gameWinner !== undefined && parseInt(_md.gameWinner) !== 0){
+            endGameForClient(_md.GameWinner);
+          }
+          enemyLastAlive = parseInt(_md.masterLastAlive);
+          syncUser(_md.status);
+          lastCheck = _time.getTime();
+          if((enemyLastAlive + timeoutWait * 1000) < lastCheck){
+            console.log("Enemy disconected");
+            //saveMasterDisconected(parseInt(gameId));
+          }
+        }
+        if(parseInt(_md.gameStep) === 1 || gameManagerActive === true){
+          setTimeout(function(){
+            getMasterMatchData(parseInt(gameId));
+          }, 400);
+        }
+      };
+      ///Send Master's data to p2
+      const syncUser = async (data) => {
+        if(inGame == true && gameManagerActive === true){
+          unityContext.send("GameManager", "GL_SyncClient", data);
+        }
+      };
+      /// Game Ends
+      const endGameForClient = async (_gw) => {
+        await setGameWinner(_gw);
+      };
+      unityContext.on("SendClientData", (data) => {
+        console.log("Client's data", data);
+        let _d = JSON.parse(data);
+        if(gameManagerActive === true){
+          sendClientData(data, parseInt(_d.GameId), _d.ClientScore);
+        }
+      });
+      const sendClientData = async (data, gameId, _clientScore) => {
+          const _time = new Date();
+          console.log("Client's score", _clientScore);
+          let _cd = await multiplayerCanister.setUserInProgressData(data, gameId, _time.getTime(), _time.toISOString(), _clientScore);
+      };
+      const userIsAlive = async (gameId) => {
+        let _time = new Date();
+        const _ua = await multiplayerCanister.setPlayerAlive(gameId, _time.getTime());
+        if(gameManagerActive === true){
+          setTimeout(function(){
+              userIsAlive(gameId);
+          }, 5000);
+        }
+      };
 
-        const setGameWinner = async () => {
-            let _gameData = await multiplayerCanister.setGameWinner(playerWinner, parseInt(gameId));
-        };
+      //// Disconections
+      const saveMasterDisconected = async (gameId) => {
+          let _gameData = await multiplayerCanister.getGameInProgressData(parseInt(gameId));
+          let _statusTxt = JSON.parse(_gameData.status);
+          _statusTxt.GameWinner = 2;
+          _gameData.status = JSON.stringify(_statusTxt);
+          let _cd = await multiplayerCanister.setGameInProgressData(_gameData.status, parseInt(gameId), _gameData.masterLastAlive, _gameData.gameLastUpdate, _gameData.GameStep);
+          syncUser(_gameData.status);
+      };
 
-        /// Receive score from game end
-        unityContext.on("SaveScore", (score) => {
-          console.log("SAVE SCORE AT THE END OF THE GAME");
-          saveScore(score);
-          inGame = false;
-          setGameManagerActive(false);
-        });
-        /// Save the score
-        const saveScore = async (score) => {
-          let saved = await cosmicrafts.savePlayerScore(score);
-          console.log("SCORE", saved);
-        };
+      const setGameWinner = async (_pw) => {
+        console.log("Player winner", _pw);
+        let _gameData = await multiplayerCanister.setGameWinner(_pw, parseInt(gameId), playerIndex);
+        console.log("Saved winner", _gameData);
+      };
 
-        //// Go to Main Menu after game
-        unityContext.on("ExitGame", (json) => {
-            console.log("GAME END");
-            inGame = false;
-            setGameManagerActive(false);
-            setGame({});
-            setGameId(0);
-            setPlayerWinner(0);
-        });
+      /// Receive score from game end
+      unityContext.on("SaveScore", (score) => {
+        console.log("SAVE SCORE AT THE END OF THE GAME");
+        saveScore(score);
+        inGame = false;
+        gameManagerActive = false;
+      });
+
+      /// Save the score
+      const saveScore = async (score) => {
+        let saved = await cosmicrafts.savePlayerScore(score);
+        console.log("SCORE", saved);
+        playerIndex = 0;
+      };
+
+      //// Go to Main Menu after game
+      unityContext.on("ExitGame", (json) => {
+        setGameWinner();
+        console.log("GAME END, WINNER");
+        inGame = false;
+        gameManagerActive = false;
+        setGame({});
+        setGameId(0);
+        playerIndex = 0;
+      });
 
   return (
     <>
