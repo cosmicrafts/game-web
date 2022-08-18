@@ -24,10 +24,10 @@ const unityContext = new UnityContext({
 });*/
 
 const unityContext = new UnityContext({
-  loaderUrl: "http://74.208.24.194/Build/CosmicraftsGame.loader.js",
-  dataUrl: "http://74.208.24.194/Build/CosmicraftsGame.data",
-  frameworkUrl: "http://74.208.24.194/Build/CosmicraftsGame.framework.js",
-  codeUrl: "http://74.208.24.194/Build/CosmicraftsGame.wasm",
+  loaderUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.loader.js",
+  dataUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.data",
+  frameworkUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.framework.js",
+  codeUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.wasm",
 });
 
 
