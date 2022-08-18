@@ -396,7 +396,7 @@ function App() {
   };
 
   unityContext.on("JSClaimNft", (index) => {
-    getNFTCode(index);
+    getNFTCode(parseInt(index));
   });
 
   unityContext.on("JSClaimAllNft", (indexes) => {
@@ -461,6 +461,7 @@ function App() {
       }
     } catch(e){
       alert("Your Wallet session has expired. Please login again in their app and then reload this page");
+      console.log("Get or set player error", e);
     }
   };
 
