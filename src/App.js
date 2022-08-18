@@ -447,6 +447,8 @@ function App() {
   const getOrSetPlayer = async () => {
     try{
       console.log("Will try to get player");
+      let _myPrincipal = await cosmicrafts.principalToString();
+      console.log("Principal logged", _myPrincipal, _myPrincipal.toString());
       let _player = await cosmicrafts.getPlayer();
       console.log("Player:", _player);
       if(_player === null || _player.length === 0){
