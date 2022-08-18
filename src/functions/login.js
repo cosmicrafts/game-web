@@ -150,6 +150,7 @@ export const getCanister = async (identity) => {
         }),
         canisterId,
     });
+    console.log("Canister of cosmicrafts", _cosmicrafts);
     return _cosmicrafts;
 };
 export const getPlayerAddress = async () => {
