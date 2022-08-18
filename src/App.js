@@ -446,17 +446,25 @@ function App() {
 
   const getOrSetPlayer = async () => {
     try{
+      console.log("Will try to get player");
       let _player = await cosmicrafts.getPlayer();
+      console.log("Player:", _player);
       if(_player === null || _player.length === 0){
+        console.log("Get approved");
         let _approved = await betaNFTsCanister.getBetaPlayer();
+        console.log(_approved);
         if(_approved !== undefined && _approved !== null && _approved.length > 0 && parseInt(_approved[0].allowed) === 1){
+          console.log("Get BetaNFTList");
           await getBetaNFTsList();
+          console.log("Send 0 to OnNameData");
           unityContext.send("LoginCanvas", "OnNameData", 0);
         } else {
+          console.log("Send 3 to OnNameData");
           unityContext.send("LoginCanvas", "OnNameData", 3);
         }
         return false;
       } else {
+        console.log("Set player");
         setPlayer(_player[0]);
       }
     } catch(e){
