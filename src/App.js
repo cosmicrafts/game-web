@@ -15,20 +15,22 @@ import { idlFactory as cosmicCan } from "./declarations/cosmicrafts/cosmicrafts.
 import { decodeLink }     from "@vvv-interactive/nftanvil-tools/cjs/data.js";
 import * as AccountIdentifier from "@vvv-interactive/nftanvil-tools/cjs/accountidentifier.js";
 import { encodeTokenId, decodeTokenId, tokenToText } from "@vvv-interactive/nftanvil-tools/cjs/token.js";
-/*
+/// STATS
+import { Usergeek } from "usergeek-ic-js"
+
 const unityContext = new UnityContext({
   loaderUrl: "Build/CosmicraftsGame.loader.js",
   dataUrl: "Build/CosmicraftsGame.data",
   frameworkUrl: "Build/CosmicraftsGame.framework.js",
   codeUrl: "Build/CosmicraftsGame.wasm",
-});*/
+});
 
-const unityContext = new UnityContext({
+/*const unityContext = new UnityContext({
   loaderUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.loader.js",
   dataUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.data",
   frameworkUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.framework.js",
   codeUrl: "https://storage.cosmicrafts.com/Build/CosmicraftsGame.wasm",
-});
+});*/
 
 
 const betaCanisterId = "k7h5q-jyaaa-aaaan-qaaaq-cai";
@@ -36,6 +38,7 @@ const canisterId = "onhpa-giaaa-aaaak-qaafa-cai";
 
 let gameManagerActive = false;
 let playerIndex = 0;
+let winnerPlayer = 0;
 
 function App() {
   //const [user, setUser] = useState(null); /// For game
@@ -50,6 +53,8 @@ function App() {
   const [playerAddress, setPlayerAddress] = useState(null);
   const [player, setPlayer] = useState(null);
   const [playerName, setPlayerName] = useState("");
+  const [playerConfigData, setPlayerConfigData] = useState(null);
+  const [playerCharSelected, setPlayerCharSelected] = useState(null);
   const [walletService, setWalletService] = useState("");
   const [unityPlayerData, setUnityPlayerData] = useState(null);
   const [aII, setAII] = useState(null);
@@ -89,7 +94,7 @@ function App() {
 
   useEffect(() => { if(betaNFTsCanister !== null) { } }, [betaNFTsCanister]);
   
-  useEffect(() => { if(identity !== null && identity !== undefined) { console.log("IDENTITY", identity, identity.getPrincipal().toString()); generateMap(false); } }, [identity]);
+  useEffect(() => { if(identity !== null && identity !== undefined) { generateMap(false); } }, [identity]);
 
   useEffect(() => { if(aII !== null) { iiLogin(); } }, [aII]);
 
@@ -101,13 +106,14 @@ function App() {
 
   useEffect(() => {}, [playerName, walletService]);
 
-  useEffect(() => { if(player !== null) { initializeGame(); console.log("Player:", player); } }, [player]);
+  useEffect(() => { if(player !== null) { initializeGame(); } }, [player]);
 
-  useEffect(() => { if(map !== null && aID !== null) { console.log("AID", aID); getMyNFTs(); } }, [map, aID]);
+  useEffect(() => { if(map !== null && aID !== null) { getMyNFTs(); } }, [map, aID]);
 
-  useEffect(() => { console.log("Unity Player Data", unityPlayerData); if(unityPlayerData !== null) { sendDataToUnity(); } }, [unityPlayerData]);
+  useEffect(() => { if(unityPlayerData !== null) { sendDataToUnity(); } }, [unityPlayerData]);
 
   useEffect(() => { if(pop !== null) { generateAID(); } }, [pop]);
+
   
   /// NFTs
   useEffect(() => {
@@ -119,7 +125,7 @@ function App() {
       setAllMyNFTs(_nfts);
     }
   }, [myNFTsIDs]);
-
+  
   useEffect(() => {
     console.log("allMyNFTs effect", allMyNFTs);
     if(allMyNFTs !== [] && allMyNFTs.length > 0){
@@ -132,11 +138,34 @@ function App() {
       }
     }
   }, [allMyNFTs]);
+  
+  /*useEffect(() => {
+    Lottie.loadAnimation({
+      container: document.querySelector("#loading-animation"),
+      animationData: loadingAnimation
+    }).setSpeed(0.5);
+  }, []);*/
+
+  useEffect(() => {
+    initUsergeek();
+  }, []);
 
   let lastCheck = 0;
   let enemyLastAlive = 0;
   let timeoutWait = 30;
   let inGame = false;
+
+  const initUsergeek = () => {
+    try{
+      Usergeek.init({
+        apiKey: "0175019CC7D93DC047C139592BCFB7F0",
+        host: "https://fbbjb-oyaaa-aaaah-qaojq-cai.raw.ic0.app/"
+      });
+      console.log("Usergeek init ok");
+    } catch (err){
+      console.log("Error on Usergeek init", err);
+    }
+  };
 
   const getMyNFTs = async () => {
     setMyNFTsIDs(await getMine(map, aID, setMyNFTsIDs));
@@ -449,6 +478,8 @@ function App() {
       console.log("Will try to get player");
       let _myPrincipal = await cosmicrafts.principalToString();
       console.log("Principal logged", _myPrincipal, _myPrincipal.toString());
+      Usergeek.setPrincipal(_myPrincipal);
+      Usergeek.trackSession();
       let _player = await cosmicrafts.getPlayer();
       console.log("Player:", _player);
       if(_player === null || _player.length === 0){
@@ -537,6 +568,7 @@ function App() {
   });
 
   const waitForDashboardToLoad = async () => {
+    Usergeek.trackEvent("Load Player's data");
     if(allMyNFTs.charactersData.length > 0) { unityContext.send("Dashboard", "GL_SetCollectionCharactersData", JSON.stringify(allMyNFTs.charactersData)); }
     if(allMyNFTs.shipsData.length > 0)      { unityContext.send("Dashboard", "GL_SetCollectionUnitsData",      JSON.stringify(allMyNFTs.shipsData));      }
     if(allMyNFTs.spellsData.length > 0)     { unityContext.send("Dashboard", "GL_SetCollectionSkillsData",     JSON.stringify(allMyNFTs.spellsData));     }
@@ -544,14 +576,16 @@ function App() {
     let score = await cosmicrafts.getPlayerScore();
     score = (score.ok !== undefined) ? parseInt(score.ok) : 0;
     //// TO DO: GET REAL LEVEL, XP AND BattlePoints
-    let _prog = JSON.stringify({"Xp": 0, "Level": 0, "BattlePoints": score});
+    let _prog = JSON.stringify({"Xp": score, "Level": 1, "BattlePoints": score});
     let _lang = (_pref.length > 0 && _pref[0].gamePlayerData !== "") ? _pref[0].gamePlayerData : JSON.stringify({"language": 0});
     let _char = (_pref.length > 0 && parseInt(_pref[0].playerCharID) !== 0 ) ? parseInt(_pref[0].playerCharID) : allMyNFTs.charactersData[0].ID;
     unityContext.send("Dashboard", "GL_SetPlayerData", JSON.stringify(unityPlayerData));
     unityContext.send("Dashboard", "GL_SetCharacterSelected", _char);
     unityContext.send("Dashboard", "GL_SetConfigData", _lang);
     unityContext.send("Dashboard", "GL_SetProgressData", _prog);
-    setIsLoading(false);
+    setPlayerConfigData(_lang);
+    setPlayerCharSelected(_char);
+    //setIsLoading(false);
     setDashboardSet(true);
   };
 
@@ -560,6 +594,7 @@ function App() {
     ///// Unity default functions
     unityContext.on("loaded", () => {
       // When game has loaded all files
+      setIsLoading(false);
     });
     unityContext.on("progress", (progression) => {
       /// Game's loading progression
@@ -813,21 +848,24 @@ function App() {
     //////////////////////////////////////
       /// Check if p2 has new data
       const getUserMatchData = async (gameId) => {
-        const _time = new Date();
-        let _ud = await multiplayerCanister.getUserMatchData(parseInt(gameId));
-        if(_ud.status != ""){
-            enemyLastAlive = parseInt(_ud.lastAlive);
-            lastCheck = _time.getTime();
-            if((enemyLastAlive + timeoutWait * 1000) < lastCheck){
-                setGameWinner();
-            }
-            syncMaster(_ud.status); /// status has the full p2's game data
-        }
-        let _md = await multiplayerCanister.getGameInProgressData(parseInt(gameId));
-        if(parseInt(_md.gameStep) == 1 || parseInt(_md.gameStep) == 2){
-            setTimeout(function(){
-              getUserMatchData(parseInt(gameId));
-            }, 200);
+        if(parseInt(gameId) !== NaN && parseInt(gameId) > 0 && winnerPlayer === 0){
+          const _time = new Date();
+          let _ud = await multiplayerCanister.getUserMatchData(parseInt(gameId));
+          if(_ud.status != ""){
+              enemyLastAlive = parseInt(_ud.lastAlive);
+              lastCheck = _time.getTime();
+              if((enemyLastAlive + timeoutWait * 1000) < lastCheck){
+                  setGameWinner(1);
+              }
+              syncMaster(_ud.status); /// status has the full p2's game data
+          }
+          let _md = await multiplayerCanister.getGameInProgressData(parseInt(gameId));
+          console.log("Match data", _md);
+          if((parseInt(_md.gameStep) == 1 || parseInt(_md.gameStep) == 2) && parseInt(_md.gameWinner) === 0){
+              setTimeout(function(){
+                getUserMatchData(parseInt(gameId));
+              }, 200);
+          }
         }
       };
       ///Send p2 data to Master
@@ -838,11 +876,22 @@ function App() {
       };
       unityContext.on("SendMasterData", (data) => {
         let _d = JSON.parse(data);
+        console.log("Master data from Unity", _d);
         if(_d.GameStep >= 2){
-          if(_d.GameWinner > 0){
-            endGameForMaster(_d.GameWinner);
+          if(_d.GameWinner !== undefined && _d.GameWinner !== null && _d.GameWinner > 0){
+            if(winnerPlayer === 0){
+              console.log("Game winner on Master", _d.GameWinner);
+              endGameForMaster(_d.GameWinner);
+              winnerPlayer = _d.GameWinner;
+              sendMasterData(data, _d.GameId, _d.MasterScore);
+            } else {
+              console.log("Winner set as", winnerPlayer);
+              console.log("Game Step", _d.GameStep);
+            }
           } else {
-            sendMasterData(data, _d.GameId, _d.MasterScore);
+            if(winnerPlayer === 0){
+              sendMasterData(data, _d.GameId, _d.MasterScore);
+            }
           }
         }
       });
@@ -855,8 +904,8 @@ function App() {
       };
       /// Game Ends
       const endGameForMaster = async (_gw) => {
-        await syncWinnerMaster(_gw);
         await setGameWinner(_gw);
+        await syncWinnerMaster(_gw);
       };
       //// Send winner to Master
       const syncWinnerMaster = async (_pw) => {
@@ -876,9 +925,12 @@ function App() {
         const _time = new Date();
         let _md = await multiplayerCanister.getGameInProgressData(parseInt(gameId));
         console.log("Get game's progress", _md);
+        let winnerSavedIC = 0;
         if(_md.status != "" /*&& _time.getTime() > lastCheck*/){
-          if( _md.gameWinner !== undefined && parseInt(_md.gameWinner) !== 0){
-            endGameForClient(_md.GameWinner);
+          if( _md.gameWinner !== undefined && parseInt(_md.gameWinner) !== 0 && parseInt(_md.gameWinner) !== NaN){
+            //winnerPlayer = parseInt(_md.gameWinner);
+            console.log("Winner on Client", parseInt(_md.gameWinner));
+            endGameForClient(parseInt(_md.gameWinner));
           }
           enemyLastAlive = parseInt(_md.masterLastAlive);
           syncUser(_md.status);
@@ -887,22 +939,33 @@ function App() {
             console.log("Enemy disconected");
             //saveMasterDisconected(parseInt(gameId));
           }
+          let _status = JSON.parse(_md.status);
+          winnerSavedIC = _status.GameWinner;
+          console.log("winnerSavedIC", winnerSavedIC);
         }
-        if(parseInt(_md.gameStep) === 1 || gameManagerActive === true){
-          setTimeout(function(){
-            getMasterMatchData(parseInt(gameId));
-          }, 400);
+        if(winnerPlayer === 0 || winnerSavedIC === 0){
+          if((parseInt(_md.gameStep) >= 1 || gameManagerActive === true)){
+            setTimeout(function(){
+              getMasterMatchData(parseInt(gameId));
+            }, 400);
+          }
         }
       };
       ///Send Master's data to p2
       const syncUser = async (data) => {
         if(inGame == true && gameManagerActive === true){
+          console.log("Send to User", data);
           unityContext.send("GameManager", "GL_SyncClient", data);
         }
       };
       /// Game Ends
       const endGameForClient = async (_gw) => {
-        await setGameWinner(_gw);
+        if(_gw !== undefined && _gw !== null && winnerPlayer === 0){
+          winnerPlayer = _gw;
+          await setGameWinner(_gw);
+        } else {
+          console.log("Player already set on client", winnerPlayer);
+        }
       };
       unityContext.on("SendClientData", (data) => {
         console.log("Client's data", data);
@@ -952,24 +1015,54 @@ function App() {
 
       /// Save the score
       const saveScore = async (score) => {
+        Usergeek.trackEvent("Game finished");
         let saved = await cosmicrafts.savePlayerScore(score);
         console.log("SCORE", saved);
         playerIndex = 0;
+        updateCXP();
       };
 
       //// Go to Main Menu after game
       unityContext.on("ExitGame", (json) => {
-        setGameWinner();
-        console.log("GAME END, WINNER");
+        //setGameWinner(winnerPlayer);
+        console.log("GAME END, WINNER", winnerPlayer);
         inGame = false;
         gameManagerActive = false;
         setGame({});
         setGameId(0);
         playerIndex = 0;
+        winnerPlayer = 0;
+        updateCXP();
       });
+
+      const updateCXP = async () => {
+        const getScore = new Promise((resolve, reject) => {
+          resolve(cosmicrafts.getPlayerScore());
+        });
+        getScore.then((_score) => {
+          let score = (_score.ok !== undefined) ? parseInt(_score.ok) : 0;
+          let _prog = JSON.stringify({"Xp": score, "Level": 5, "BattlePoints": score});
+          unityContext.send("Dashboard", "GL_SetProgressData", _prog);
+          unityContext.send("Dashboard", "GL_SetPlayerData", JSON.stringify(unityPlayerData));
+          unityContext.send("Dashboard", "GL_SetCharacterSelected", playerCharSelected);
+          unityContext.send("Dashboard", "GL_SetConfigData", playerConfigData);
+          console.log("New score", score);
+        });
+      };
 
   return (
     <>
+    {
+      isLoading !== false ?
+      <>
+        <video autoPlay muted loop id="loadingVideo">
+          <source src="Loader.webm" type="video/webm" />
+        </video>
+      </>
+      :
+      <>
+      </>
+    }
       <Unity 
         unityContext={unityContext} 
         style={{
