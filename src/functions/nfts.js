@@ -25,7 +25,7 @@ export const getMine = async (map, aID) => {
     let acc = accountCanister(can, {agentOptions: {
       host: 'https://mainnet.dfinity.network',
     }});
-  
+
     let pageIdx = 0;
     let max = 100;
     let final = [];
@@ -37,11 +37,12 @@ export const getMine = async (map, aID) => {
           (pageIdx + 1) * max
         );
   
-        list = list.filter((x) => x !== 0n).map((x) => Number(x));
+        list = list.filter((x) => x !== 0n).map((x) => Number(parseInt(x)));
   
         if (list.length === 0) break;
-  
+
         final.push(...list);
+
         pageIdx++;
       }catch(e){
         console.log("DO", e);
