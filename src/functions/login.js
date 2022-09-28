@@ -16,7 +16,8 @@ import { createActor as betaNFTsActor } from "../declarations/nfts_beta_test";
 const canisterId = "onhpa-giaaa-aaaak-qaafa-cai";
 const betaCanisterId = "k7h5q-jyaaa-aaaan-qaaaq-cai";
 const whitelist = [canisterId, betaCanisterId, "fo275-uiaaa-aaaai-qe3lq-cai"];
-const host ='https://mainnet.dfinity.network';
+//const host ='https://mainnet.dfinity.network';
+const host = 'https://raw.ic0.app/';
 
 // INTERNET IDENTITY
 export const loginII = async (setAII) => {
@@ -145,7 +146,7 @@ export const getAIDpopup = async (principal) => {
 export const getCanister = async (identity) => {
     const _cosmicrafts = Actor.createActor(idlFactory, {
         agent: new HttpAgent({
-          host: 'https://mainnet.dfinity.network',
+          host: host,
           identity,
         }),
         canisterId,
@@ -159,7 +160,7 @@ export const getPlayerAddress = async () => {
 export const getBetaNFTsCanister = async (identity) => {
   console.log("IDENTITY FOR BETA CANISTER", identity);
   const _betaNFTsCanister = betaNFTsActor(betaCanisterId, {agentOptions: {
-    host: 'https://mainnet.dfinity.network',
+    host: host,
     identity,
   }});
   console.log("BETA CANISTER", _betaNFTsCanister);
