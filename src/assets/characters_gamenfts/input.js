@@ -5956,5 +5956,23 @@ module.exports = [
     ],
     quality: 1,
     authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Wegnar",
+    lore: "The Sharpshooter",
+    content: "./images/Wegnar.png",
+    thumb: "./thumb/Wegnar.png",
+    attributes: {
+      Faction: 1,
+      EntType: 0,
+      LocalID: 1,
+      Level: 1
+    },
+    tags: [
+      "Wegnar"
+    ],
+    quality: 1,
+    authorShare: 500
   }
 ]
