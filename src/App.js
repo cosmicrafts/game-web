@@ -35,6 +35,8 @@ const unityContext = new UnityContext({
 
 const betaCanisterId = "k7h5q-jyaaa-aaaan-qaaaq-cai";
 const canisterId = "onhpa-giaaa-aaaak-qaafa-cai";
+// const host = 'https://mainnet.dfinity.network';
+const host = 'https://raw.ic0.app/';
 
 let gameManagerActive = false;
 let playerIndex = 0;
@@ -114,15 +116,96 @@ function App() {
 
   useEffect(() => { if(pop !== null) { generateAID(); } }, [pop]);
 
+
+  /// Level
+  const xp_table = [
+                    0,
+                    2500,
+                    3750,
+                    5625,
+                    8438,
+                    12656,
+                    18984,
+                    28477,
+                    42715,
+                    64072,
+                    96108,
+                    144163,
+                    216244,
+                    324366,
+                    486549,
+                    729823,
+                    1094735,
+                    1642102,
+                    2463153,
+                    3694730,
+                    5542095,
+                    8313142,
+                    12469713,
+                    18704569,
+                    28056854,
+                    42085280,
+                    63127921,
+                    94691881,
+                    142037822,
+                    213056732,
+                    319585099,
+                    479377648,
+                    719066472,
+                    1078599708,
+                    1617899562,
+                    2426849343,
+                    3640274015,
+                    5460411023,
+                    8190616534,
+                    12285924801,
+                    18428887202,
+                    27643330802,
+                    41464996204,
+                    62197494305,
+                    93296241458,
+                    139944362187,
+                    209916543280,
+                    314874814921,
+                    472312222381,
+                    708468333571,
+                    1062702500357,
+                    1594053750535,
+                    2391080625803,
+                    3586620938704,
+                    5379931408056,
+                    8069897112084,
+                    12104845668126,
+                    18157268502189,
+                    27235902753284,
+                    40853854129926,
+                    61280781194888,
+                    91921171792333,
+                    137881757688499,
+                    206822636532748,
+                    310233954799122
+  ];
+
+  const getLevel = (xp) => {
+    for(let i = 0; i < xp_table.length; i++){
+      if(xp < xp_table[i]){
+        return i;
+      }
+    }
+    return 1;
+  };
+
   
   /// NFTs
   useEffect(() => {
+    console.log("myNFTsIDs",myNFTsIDs);
     if(myNFTsIDs !== []){
       let _ships = getNFTsData(true, myNFTsIDs, filterQuality, prices, sortBy, 1);
       let _chars = getNFTsData(true, myNFTsIDs, filterQuality, prices, sortBy, 2);
       let _aNFTs = _ships.concat(_chars);
       let _nfts = structureNFTsForUnity(_aNFTs, map);
       setAllMyNFTs(_nfts);
+      console.log("ALLLLLLLL", _ships, _chars);
     }
   }, [myNFTsIDs]);
   
@@ -168,7 +251,8 @@ function App() {
   };
 
   const getMyNFTs = async () => {
-    setMyNFTsIDs(await getMine(map, aID, setMyNFTsIDs));
+    console.log("getMine prev");
+    setMyNFTsIDs(await getMine(map, aID));
   };
 
 
@@ -322,7 +406,7 @@ function App() {
     console.log("IDENTITY TRANSFER", _identity);
     let nftcan = nftCanister(canister, {
       agentOptions: {
-        host: 'https://mainnet.dfinity.network',
+        host: host,
         _identity 
       }
     });
@@ -399,7 +483,7 @@ function App() {
     let _identity = identity;
     let nftcan = nftCanister(canister, {
       agentOptions: {
-        host: 'https://mainnet.dfinity.network',
+        host: host,
         _identity 
       }
     });
@@ -569,6 +653,7 @@ function App() {
 
   const waitForDashboardToLoad = async () => {
     Usergeek.trackEvent("Load Player's data");
+    console.log("NFTS TO UNITY", allMyNFTs);
     if(allMyNFTs.charactersData.length > 0) { unityContext.send("Dashboard", "GL_SetCollectionCharactersData", JSON.stringify(allMyNFTs.charactersData)); }
     if(allMyNFTs.shipsData.length > 0)      { unityContext.send("Dashboard", "GL_SetCollectionUnitsData",      JSON.stringify(allMyNFTs.shipsData));      }
     if(allMyNFTs.spellsData.length > 0)     { unityContext.send("Dashboard", "GL_SetCollectionSkillsData",     JSON.stringify(allMyNFTs.spellsData));     }
@@ -576,7 +661,7 @@ function App() {
     let score = await cosmicrafts.getPlayerScore();
     score = (score.ok !== undefined) ? parseInt(score.ok) : 0;
     //// TO DO: GET REAL LEVEL, XP AND BattlePoints
-    let _prog = JSON.stringify({"Xp": score, "Level": 1, "BattlePoints": score});
+    let _prog = JSON.stringify({"Xp": score, "Level": getLevel(score), "BattlePoints": score});
     let _lang = (_pref.length > 0 && _pref[0].gamePlayerData !== "") ? _pref[0].gamePlayerData : JSON.stringify({"language": 0});
     let _char = (_pref.length > 0 && parseInt(_pref[0].playerCharID) !== 0 ) ? parseInt(_pref[0].playerCharID) : allMyNFTs.charactersData[0].ID;
     unityContext.send("Dashboard", "GL_SetPlayerData", JSON.stringify(unityPlayerData));
@@ -1041,7 +1126,7 @@ function App() {
         });
         getScore.then((_score) => {
           let score = (_score.ok !== undefined) ? parseInt(_score.ok) : 0;
-          let _prog = JSON.stringify({"Xp": score, "Level": 5, "BattlePoints": score});
+          let _prog = JSON.stringify({"Xp": score, "Level": getLevel(score), "BattlePoints": score});
           unityContext.send("Dashboard", "GL_SetProgressData", _prog);
           unityContext.send("Dashboard", "GL_SetPlayerData", JSON.stringify(unityPlayerData));
           unityContext.send("Dashboard", "GL_SetCharacterSelected", playerCharSelected);

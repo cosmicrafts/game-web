@@ -6,7 +6,7 @@ import { accountCanister }    from "@vvv-interactive/nftanvil-canisters/cjs/acco
 
 //import artNFTs from "../nft-anvil/resources/artnfts.json";
 //import testNFTs from "../assets/game_nfts_test.json"; /// a00fdafece4bfb0e25dc7eccd5a757ddcb32691a6d567fab56d48bb0dcadd8a8
-import shipNFTs from "../assets/ships_gamenfts/data.json";
+import shipNFTs       from "../assets/ships_gamenfts/data.json";
 import charactersNFTs from "../assets/characters_gamenfts/data.json";
 
 export const getMine = async (map, aID) => {
@@ -23,7 +23,8 @@ export const getMine = async (map, aID) => {
     ).toText();
     
     let acc = accountCanister(can, {agentOptions: {
-      host: 'https://mainnet.dfinity.network',
+      //host: 'https://mainnet.dfinity.network',
+      host: 'https://raw.ic0.app/',
     }});
 
     let pageIdx = 0;
@@ -69,6 +70,7 @@ export const getNFTsData = (_showMine, myNFTsIDs, filterQuality, prices, sortBy,
       });
     
     if(_showMine){
+      console.log("Filtered", filtered);
       return filtered;
     }
 
