@@ -60902,5 +60902,442 @@ module.exports = [
     ],
     quality: 3,
     authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Barracuda",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/ALL_1_Barracuda.jpg",
+    thumb: "./thumb/ALL_1_Barracuda.jpg",
+    attributes: {
+      Faction: 1,
+      EntType: 3,
+      LocalID: 1,
+      EnergyCost: 4,
+      HitPoints: 250,
+      Shield: 250,
+      Dammage: 16,
+      Speed: 500,
+      Level: 1
+    },
+    tags: [
+      "Barracuda"
+    ],
+    quality: 2,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "TypeI",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/ALL_2_TypeI.jpg",
+    thumb: "./thumb/ALL_2_TypeI.jpg",
+    attributes: {
+      Faction: 1,
+      EntType: 3,
+      LocalID: 2,
+      EnergyCost: 1,
+      HitPoints: 100,
+      Shield: 100,
+      Dammage: 8,
+      Speed: 250,
+      Level: 1
+    },
+    tags: [
+      "TypeI"
+    ],
+    quality: 1,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Conquest",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/ALL_3_Conquest.jpg",
+    thumb: "./thumb/ALL_3_Conquest.jpg",
+    attributes: {
+      Faction: 1,
+      EntType: 3,
+      LocalID: 3,
+      EnergyCost: 2,
+      HitPoints: 160,
+      Shield: 160,
+      Dammage: 4,
+      Speed: 1500,
+      Level: 1
+    },
+    tags: [
+      "Conquest"
+    ],
+    quality: 1,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Farragut",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/ALL_4_Farragut.jpg",
+    thumb: "./thumb/ALL_4_Farragut.jpg",
+    attributes: {
+      Faction: 1,
+      EntType: 3,
+      LocalID: 4,
+      EnergyCost: 5,
+      HitPoints: 500,
+      Shield: 500,
+      Dammage: 4,
+      Speed: 200,
+      Level: 1
+    },
+    tags: [
+      "Farragut"
+    ],
+    quality: 2,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Devastator",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/ALL_5_Devastator.jpg",
+    thumb: "./thumb/ALL_5_Devastator.jpg",
+    attributes: {
+      Faction: 1,
+      EntType: 3,
+      LocalID: 5,
+      EnergyCost: 2,
+      HitPoints: 200,
+      Shield: 200,
+      Dammage: 12,
+      Speed: 800,
+      Level: 1
+    },
+    tags: [
+      "Devastator"
+    ],
+    quality: 2,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Tigershark",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/ALL_6_Tigershark.jpg",
+    thumb: "./thumb/ALL_6_Tigershark.jpg",
+    attributes: {
+      Faction: 1,
+      EntType: 3,
+      LocalID: 6,
+      EnergyCost: 2,
+      HitPoints: 140,
+      Shield: 140,
+      Dammage: 10,
+      Speed: 150,
+      Level: 1
+    },
+    tags: [
+      "Tigershark"
+    ],
+    quality: 2,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Warhawk",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/ALL_7_Warhawk.jpg",
+    thumb: "./thumb/ALL_7_Warhawk.jpg",
+    attributes: {
+      Faction: 1,
+      EntType: 3,
+      LocalID: 7,
+      EnergyCost: 5,
+      HitPoints: 350,
+      Shield: 350,
+      Dammage: 20,
+      Speed: 2000,
+      Level: 1
+    },
+    tags: [
+      "Warhawk"
+    ],
+    quality: 3,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Predator",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/ALL_8_Predator.jpg",
+    thumb: "./thumb/ALL_8_Predator.jpg",
+    attributes: {
+      Faction: 1,
+      EntType: 3,
+      LocalID: 8,
+      EnergyCost: 4,
+      HitPoints: 300,
+      Shield: 300,
+      Dammage: 12,
+      Speed: 800,
+      Level: 1
+    },
+    tags: [
+      "Predator"
+    ],
+    quality: 2,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Blackbird",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/ALL_9_Blackbird.jpeg",
+    thumb: "./thumb/ALL_9_Blackbird.jpeg",
+    attributes: {
+      Faction: 1,
+      EntType: 3,
+      LocalID: 9,
+      EnergyCost: 3,
+      HitPoints: 220,
+      Shield: 220,
+      Dammage: 6,
+      Speed: 250,
+      Level: 1
+    },
+    tags: [
+      "Blackbird"
+    ],
+    quality: 2,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Blackbird",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/ALL_9_Blackbird.jpeg",
+    thumb: "./thumb/ALL_9_Blackbird.jpeg",
+    attributes: {
+      Faction: 1,
+      EntType: 3,
+      LocalID: 9,
+      EnergyCost: 3,
+      HitPoints: 220,
+      Shield: 220,
+      Dammage: 6,
+      Speed: 250,
+      Level: 1
+    },
+    tags: [
+      "Blackbird"
+    ],
+    quality: 2,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Chacalot",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/SPI_1_Chacalot.jpg",
+    thumb: "./thumb/SPI_1_Chacalot.jpg",
+    attributes: {
+      Faction: 2,
+      EntType: 3,
+      LocalID: 1,
+      EnergyCost: 5,
+      HitPoints: 375,
+      Shield: 235,
+      Dammage: 7,
+      Speed: 350,
+      Level: 1
+    },
+    tags: [
+      "Chacalot"
+    ],
+    quality: 1,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Crab",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/SPI_2_Crab.jpg",
+    thumb: "./thumb/SPI_2_Crab.jpg",
+    attributes: {
+      Faction: 2,
+      EntType: 3,
+      LocalID: 2,
+      EnergyCost: 3,
+      HitPoints: 145,
+      Shield: 165,
+      Dammage: 19,
+      Speed: 300,
+      Level: 1
+    },
+    tags: [
+      "Crab"
+    ],
+    quality: 2,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Goblin",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/SPI_3_Goblin.jpg",
+    thumb: "./thumb/SPI_3_Goblin.jpg",
+    attributes: {
+      Faction: 2,
+      EntType: 3,
+      LocalID: 3,
+      EnergyCost: 3,
+      HitPoints: 185,
+      Shield: 145,
+      Dammage: 32,
+      Speed: 200,
+      Level: 1
+    },
+    tags: [
+      "Goblin"
+    ],
+    quality: 3,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Manta",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/SPI_4_Manta.jpg",
+    thumb: "./thumb/SPI_4_Manta.jpg",
+    attributes: {
+      Faction: 2,
+      EntType: 3,
+      LocalID: 4,
+      EnergyCost: 1,
+      HitPoints: 125,
+      Shield: 85,
+      Dammage: 11,
+      Speed: 500,
+      Level: 1
+    },
+    tags: [
+      "Manta"
+    ],
+    quality: 1,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Angler",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/SPI_5_Angler.jpg",
+    thumb: "./thumb/SPI_5_Angler.jpg",
+    attributes: {
+      Faction: 2,
+      EntType: 3,
+      LocalID: 5,
+      EnergyCost: 3,
+      HitPoints: 165,
+      Shield: 165,
+      Dammage: 48,
+      Speed: 900,
+      Level: 1
+    },
+    tags: [
+      "Angler"
+    ],
+    quality: 2,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Hammer",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/SPI_6_Hammer.jpg",
+    thumb: "./thumb/SPI_6_Hammer.jpg",
+    attributes: {
+      Faction: 2,
+      EntType: 3,
+      LocalID: 6,
+      EnergyCost: 3,
+      HitPoints: 245,
+      Shield: 175,
+      Dammage: 5,
+      Speed: 700,
+      Level: 1
+    },
+    tags: [
+      "Hammer"
+    ],
+    quality: 2,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Corsair",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/SPI_7_Corsair.jpg",
+    thumb: "./thumb/SPI_7_Corsair.jpg",
+    attributes: {
+      Faction: 2,
+      EntType: 3,
+      LocalID: 7,
+      EnergyCost: 5,
+      HitPoints: 315,
+      Shield: 215,
+      Dammage: 11,
+      Speed: 500,
+      Level: 1
+    },
+    tags: [
+      "Corsair"
+    ],
+    quality: 1,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Victoria",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/SPI_8_Victoria.jpg",
+    thumb: "./thumb/SPI_8_Victoria.jpg",
+    attributes: {
+      Faction: 2,
+      EntType: 3,
+      LocalID: 8,
+      EnergyCost: 5,
+      HitPoints: 215,
+      Shield: 315,
+      Dammage: 15,
+      Speed: 1500,
+      Level: 1
+    },
+    tags: [
+      "Victoria"
+    ],
+    quality: 3,
+    authorShare: 500
+  },
+  {
+    domain: "cosmicrafts.com/gameNFTs_beta",
+    name: "Monster",
+    lore: "Beta Game NFT - Cosmicrafts",
+    content: "./images/SPI_9_Monster.jpeg",
+    thumb: "./thumb/SPI_9_Monster.jpeg",
+    attributes: {
+      Faction: 2,
+      EntType: 3,
+      LocalID: 9,
+      EnergyCost: 2,
+      HitPoints: 195,
+      Shield: 195,
+      Dammage: 17,
+      Speed: 500,
+      Level: 1
+    },
+    tags: [
+      "Monster"
+    ],
+    quality: 2,
+    authorShare: 500
   }
 ]

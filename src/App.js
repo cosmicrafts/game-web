@@ -653,10 +653,14 @@ function App() {
 
   const waitForDashboardToLoad = async () => {
     Usergeek.trackEvent("Load Player's data");
-    console.log("NFTS TO UNITY", allMyNFTs);
     if(allMyNFTs.charactersData.length > 0) { unityContext.send("Dashboard", "GL_SetCollectionCharactersData", JSON.stringify(allMyNFTs.charactersData)); }
     if(allMyNFTs.shipsData.length > 0)      { unityContext.send("Dashboard", "GL_SetCollectionUnitsData",      JSON.stringify(allMyNFTs.shipsData));      }
     if(allMyNFTs.spellsData.length > 0)     { unityContext.send("Dashboard", "GL_SetCollectionSkillsData",     JSON.stringify(allMyNFTs.spellsData));     }
+
+    console.log("charactersData", JSON.stringify(allMyNFTs.charactersData)); 
+    console.log("shipsData", JSON.stringify(allMyNFTs.shipsData));      
+    console.log("spellsData", JSON.stringify(allMyNFTs.spellsData));     
+
     let _pref = await cosmicrafts.getPlayerPreferences();
     let score = await cosmicrafts.getPlayerScore();
     score = (score.ok !== undefined) ? parseInt(score.ok) : 0;
@@ -1101,6 +1105,7 @@ function App() {
       /// Save the score
       const saveScore = async (score) => {
         Usergeek.trackEvent("Game finished");
+        console.log("Game finished", score);
         let saved = await cosmicrafts.savePlayerScore(score);
         console.log("SCORE", saved);
         playerIndex = 0;
