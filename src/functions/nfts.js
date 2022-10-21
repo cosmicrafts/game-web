@@ -146,7 +146,6 @@ export const structureNFTsForUnity = (allMyNFTs, map) => {
             "Rarity": _nfts[i][0].quality,
             "EntType": _att.EntType,
             "LocalID": _att.LocalID,
-            //"LocalID": 1,
             "Level": _att.Level,
             "Name": _tags[0]
           };
@@ -217,6 +216,7 @@ export const structureNFTsForMP = (ids, map) => {
           "Description": data[3],
           "IconURL": url,
           "Faction": _att.Faction,
+          "Faction": 2,
           "Rarity": data[1],
           "EntType": _att.EntType,
           "LocalID": _att.LocalID,
