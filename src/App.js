@@ -11,12 +11,25 @@ import { nftCanister }             from "@vvv-interactive/nftanvil-canisters/cjs
 import * as _principal             from "@vvv-interactive/nftanvil-tools/cjs/principal.js";
 import { idlFactory as betaCan }   from "./declarations/nfts_beta_test/nfts_beta_test.did.js";
 import { idlFactory as cosmicCan } from "./declarations/cosmicrafts/cosmicrafts.did.js";
+
+//ChatSDK Canisters
+import { idlFactory as coreCanisterIDL } from './declarations/core';
+import { idlFactory as chatCanisterIDL } from './declarations/public_group';
+
+//ChatSDK req
+import { Principal } from "@dfinity/principal";
+import { Actor, HttpAgent } from "@dfinity/agent";
+import { StoicIdentity } from "ic-stoic-identity";
+
+
 /// TOOLS
 import { decodeLink }     from "@vvv-interactive/nftanvil-tools/cjs/data.js";
 import * as AccountIdentifier from "@vvv-interactive/nftanvil-tools/cjs/accountidentifier.js";
 import { encodeTokenId, decodeTokenId, tokenToText } from "@vvv-interactive/nftanvil-tools/cjs/token.js";
 /// STATS
 import { Usergeek } from "usergeek-ic-js"
+
+
 
 const unityContext = new UnityContext({
   loaderUrl: "Build/CosmicraftsGame.loader.js",
@@ -37,6 +50,10 @@ const betaCanisterId = "k7h5q-jyaaa-aaaan-qaaaq-cai";
 const canisterId = "onhpa-giaaa-aaaak-qaafa-cai";
 // const host = 'https://mainnet.dfinity.network';
 const host = 'https://raw.ic0.app/';
+
+  /// The Chat canisterId
+  const coreCanisterId = "2nfjo-7iaaa-aaaag-qawaq-cai";
+
 
 let gameManagerActive = false;
 let playerIndex = 0;
@@ -82,6 +99,107 @@ function App() {
   const [giftlink, setGiftlink] = useState("");
   const [betaNFTsCanister, setBetaNFTsCanister] = useState(null);
   const [betaNFTsCodes, setBetaNFTsCodes] = useState(null);
+
+    /// ChatSDK
+    const [identityChat,         setIdentityChat]         = useState(null); /// An identity of the user logged in
+    const [chatCoreCanister, setChatCoreCanister] = useState(null); /// The canister of the chat
+    const [userGroups,       setUserGroups]       = useState(null); /// The user's groups list
+    const [chatSelected,     setChatSelected]     = useState(null); /// The chat selected
+    const [chatCanister,     setChatCanister]     = useState(null); /// The canister of the selected chat
+    const [chatText,         setChatText]         = useState(null); /// The text in the selected chat
+
+    /// STOIC IDENTITY 2
+const loginStoic2 = async () => {
+  let _stoicIdentity = await StoicIdentity.load().then(async _identity => {
+    if (_identity !== false) {
+      //ID is a already connected wallet!
+    } else {
+      //No existing connection, lets make one!
+      _identity = await StoicIdentity.connect();
+    }
+    return _identity;
+  });
+  setIdentityChat(_stoicIdentity);
+};
+
+
+
+    useEffect(() => {
+      if(identityChat !== null) {
+        /// When an identity is set, get the Chat canister
+        setCoreCanister();
+      }
+    }, [identityChat]);
+  
+    useEffect(() => {
+      if(chatCoreCanister !== null){
+        console.log("chatCoreCanister", chatCoreCanister)
+        /// When the canister is set, get the user's data
+        loginUser();
+      }
+    }, [chatCoreCanister]);
+  
+    useEffect(() => {
+      if(userGroups !== null){
+        // When the user is set, show the list of groups they belong to
+        renderGroupsList();
+      }
+    }, [userGroups]);
+  
+    useEffect(() => {
+      if(chatSelected !== null){
+        /// When the user selects a group, get it's data
+        getChatData();
+      }
+    }, [chatSelected]);
+  
+    useEffect(() => {
+      if(chatText !== null){
+        /// Send the messages to Unity
+        renderChatMessages();
+      }
+    }, [chatText]);
+  
+    useEffect(() => {
+      /// Unity has problems to paste into inputs on webgl, so we handle it on react
+      const handlePasteAnywhere = event => {
+        let _txt = event.clipboardData.getData('text');
+        console.log(_txt);
+        unityContext.send("ChatManager", "getPaste", _txt);
+      };
+  
+      window.addEventListener('paste', handlePasteAnywhere);
+  
+      return () => {
+        window.removeEventListener('paste', handlePasteAnywhere);
+      };
+    }, []);
+
+/// Connections to Unity
+unityContext.on("Login", () => {
+  console.log("0")
+  loginStoic2();
+});
+
+unityContext.on("CreateUser", (name) => {
+  createNewUser(name);
+});
+
+unityContext.on("SendMessage", (text) => {
+  sendMessage(text);
+});
+
+unityContext.on("AddUserToGroup", (json) => {
+  addUserToGroup(json);
+});
+
+unityContext.on("CreateGroup", (groupName) => {
+  createGroup(groupName);
+});
+
+unityContext.on("SelectChatGroup", (groupID) => {
+  selectChat(groupID);
+});
 
   /// Useful info
   /** Unity
@@ -1139,6 +1257,179 @@ function App() {
           console.log("New score", score);
         });
       };
+
+
+
+
+
+
+
+
+      const setCanister = async (idl, canisterId) => {
+        console.log("1", canisterId, identityChat)
+        let _identityChat = identityChat
+        /// Code to set a canister requiring idl and the canister id as text
+        const _canister = Actor.createActor(idl, {
+          agent: new HttpAgent({
+            host: host,
+            _identityChat,
+          }),
+          canisterId,
+        });
+        return _canister;
+      };
+    
+      const setCoreCanister = async () => {
+        console.log("2")
+        ///Get the main canister
+        setChatCoreCanister(await setCanister(coreCanisterIDL, coreCanisterId));
+      };
+    
+      const loginUser = async () => {
+        console.log("3", identityChat)
+        /// Get user if exists
+        let _user = await chatCoreCanister.get_user(identityChat.getPrincipal());
+        console.log("3.1", _user)
+        if(_user === null || _user === [] || _user.length <= 0){
+          /// Create new user, send request to ask for user's name from Unity
+          unityContext.send("ChatManager", "SetNewUser", "");
+        } else {
+          /// Already created, set the data and get the user's groups
+          let _userGroups = await chatCoreCanister.get_user_groups();
+          setUserGroups(_userGroups[0].groups);
+          let _publicChat = _userGroups[0].groups[0]
+          setChatSelected(_publicChat);
+          unityContext.send("ChatManager", "Initialize", "");
+          setTimeout(() => {
+            getUserGroups();
+          }, 2000);
+        }
+      };
+    
+      const createNewUser = async (name) => {
+        console.log("4", name)
+        if(name.trim() === ""){
+          alert("Select a valid username");
+          return false;
+        }
+        /// Create user with signed accound and selected username
+        let _newUser = await chatCoreCanister.create_user_profile(name);
+        console.log("4.1", _newUser)
+        /// After creating the user we can login as normal
+        loginUser();
+      };
+    
+      const renderGroupsList = () => {
+        console.log("5", userGroups)
+        /// Once we have all user's groups we can display them
+        let _userGroups = userGroups;
+        /// First we sort them by ID asc
+        _userGroups.sort((a, b) => { return (parseInt(a.groupID) - parseInt(b.groupID)) });
+        let _groupsUnity = [];
+        /// Then we prepare the data for Unity3D
+        /// The data needs to be on an array and each registry needs to have id and name
+        for(let i = 0; i < _userGroups.length; i++){
+          let _group = {
+            id:   parseInt(_userGroups[i].groupID),
+            name: _userGroups[i].name
+          };
+          _groupsUnity.push(_group);
+        }
+        /// After we have the array, it needs to be encapsuled into another json to be processed inside Unity3D
+        _groupsUnity = "{\"data\":" + JSON.stringify(_groupsUnity) + "}";
+        unityContext.send("ChatManager", "GetGroups", _groupsUnity);
+        /// After all data has been send, we set a timeout to continue to query new data
+        setTimeout(() => {
+          updateChatData();
+        }, 3000);
+      };
+    
+      const getChatData = async () => {
+        console.log("6")
+        unityContext.send("ChatManager", "ClearMessages", "");
+        let _chatCanister = await setCanister(chatCanisterIDL, chatSelected.canister);
+        setChatCanister(_chatCanister);
+        let _chatData = await _chatCanister.get_messages();
+        setChatText(_chatData);
+      };
+    
+      const updateChatData = async () => {
+        console.log("7")
+        let _chatData = await chatCanister.get_messages();
+        setChatText(_chatData);
+      };
+    
+      const sendMessage = async (message) => {
+        console.log("8", message)
+        if(message.trim() !== ""){
+          let _send = await chatCanister.add_text_message(message);
+          //updateChatData();
+        }
+      };
+    
+      const selectChat = async (groupID) => {
+        console.log("9", groupID)
+        for(let i = 0; i < userGroups.length; i++){
+          console.log(userGroups[i]);
+          if(parseInt(userGroups[i].groupID) === groupID){
+            setChatSelected(userGroups[i]);
+            return true;
+          }
+        }
+        return false;
+      };
+    
+      const renderChatMessages = () => {
+        console.log("10")
+        let _chatText = chatText;
+        _chatText.sort((a, b) => { return (parseInt(a[0]) - parseInt(b[0])) });
+        let _msgUnity = [];
+        for(let i = 0; i < _chatText.length; i++){
+          let _msg = {
+            id:   parseInt(_chatText[i][0]),
+            text: _chatText[i][1].username + ": " + _chatText[i][1].text
+          };
+          _msgUnity.push(_msg);
+        }
+        _msgUnity = "{\"data\":" + JSON.stringify(_msgUnity) + "}";
+        unityContext.send("ChatManager", "GetChatMessages", _msgUnity);
+      };
+    
+      const getUserGroups = async () => {
+        console.log("11", userGroups)
+        let _userGroups = await chatCoreCanister.get_user_groups();
+        setUserGroups(_userGroups[0].groups);
+        setTimeout(() => {
+          getUserGroups();
+        }, 5000);
+      };
+    
+      const createGroup = async (groupName) => {
+        console.log("12", groupName)
+        let _group = await chatCoreCanister.create_group(groupName, true, false);
+      };
+    
+      const addUserToGroup = async (json) => {
+        console.log("13", json)
+        try{
+          let _data = JSON.parse(json);
+          let _principal = Principal.fromText(_data.userId);
+          let _addUser = await chatCoreCanister.add_user_to_group(_data.groupId, _principal);
+          unityContext.send("ChatManager", "UserAdded", true);
+        } catch(err){
+          console.log("Unable to add user", err);
+          alert("Invalid data, please check the data provided");
+          unityContext.send("ChatManager", "UserAdded", false);
+        }
+      };
+
+
+
+
+
+
+
+
 
   return (
     <>
