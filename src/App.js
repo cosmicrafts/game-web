@@ -17,6 +17,8 @@ import * as AccountIdentifier from "@vvv-interactive/nftanvil-tools/cjs/accounti
 import { encodeTokenId, decodeTokenId, tokenToText } from "@vvv-interactive/nftanvil-tools/cjs/token.js";
 /// STATS
 import { Usergeek } from "usergeek-ic-js"
+/// CHAT
+import { ChatAppContext } from "./chatSDK/chatAppContext";
 
 const unityContext = new UnityContext({
   loaderUrl: "Build/CosmicraftsGame.loader.js",
@@ -82,6 +84,13 @@ function App() {
   const [giftlink, setGiftlink] = useState("");
   const [betaNFTsCanister, setBetaNFTsCanister] = useState(null);
   const [betaNFTsCodes, setBetaNFTsCodes] = useState(null);
+
+  /// CHAT
+  let { setUnityApp } = useContext(ChatAppContext);
+
+  useEffect(() => {
+    setUnityApp(unityContext);
+  }, []);
 
   /// Useful info
   /** Unity
