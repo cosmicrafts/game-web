@@ -86,7 +86,7 @@ function App() {
   const [betaNFTsCodes, setBetaNFTsCodes] = useState(null);
 
   /// CHAT
-  let { setUnityApp } = useContext(ChatAppContext);
+  let { setUnityApp, setCoreCanisterExternal } = useContext(ChatAppContext);
 
   useEffect(() => {
     setUnityApp(unityContext);
@@ -685,6 +685,7 @@ function App() {
     setPlayerCharSelected(_char);
     //setIsLoading(false);
     setDashboardSet(true);
+    setCoreCanisterExternal(identity);
   };
 
 

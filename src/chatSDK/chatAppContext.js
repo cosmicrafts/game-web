@@ -36,6 +36,10 @@ const ChatICAppProvider = ({ children }) => {
         unityApp.on("CreateUser", (name) => {
           createNewUser(name);
         });
+        unityApp.on("CheckLogin", () => {
+          console.log("CheckLogin", chatCoreCanister);
+          loginUser();
+        });
       }
       loginUser();
     }
@@ -86,7 +90,14 @@ const ChatICAppProvider = ({ children }) => {
       unityApp.on("Login", () => {
         loginStoic();
       });
-    
+
+      unityApp.on("CheckLogin", () => {
+        console.log("CheckLogin", chatCoreCanister);
+        if(chatCoreCanister !== null){
+          loginUser();
+        }
+      });
+
       unityApp.on("AddUserToGroup", (json) => {
         addUserToGroup(json);
       });
@@ -127,31 +138,52 @@ const ChatICAppProvider = ({ children }) => {
     return _canister;
   };
 
+  const setCanisterExternal = async (idl, canisterId, _identity) => {
+    /// Code to set a canister requiring idl and the canister id as text
+    const _canister = Actor.createActor(idl, {
+      agent: new HttpAgent({
+        host: host,
+        _identity,
+      }),
+      canisterId,
+    });
+    return _canister;
+  };
+
   const setCoreCanister = async () => {
     ///Get the main canister
     setChatCoreCanister(await setCanister(coreCanisterIDL, coreCanisterId));
   };
 
+  const setCoreCanisterExternal = async (_identity) => {
+    setChatCoreCanister(await setCanisterExternal(coreCanisterIDL, coreCanisterId, _identity));
+  };
+
   const loginUser = async () => {
     /// Get user if exists
-    let _user = await chatCoreCanister.get_user(identity.getPrincipal());
-    if(_user === null || _user === [] || _user.length <= 0){
-      /// Create new user, send request to ask for user's name from Unity
+    if(identity !== null){
       if(unityApp !== null){
-        unityApp.send("ChatManager", "SetNewUser", "");
+        unityApp.send("ChatManager", "LoadingLogin", "");
       }
-    } else {
-      /// Already created, set the data and get the user's groups
-      let _userGroups = await chatCoreCanister.get_user_groups();
-      //setUserGroups(_userGroups[0].groups);
-      let _publicChat = _userGroups[0].groups[0]
-      setChatSelected(_publicChat);
-      if(unityApp !== null){
-        unityApp.send("ChatManager", "Initialize", "");
+      let _user = await chatCoreCanister.get_user(identity.getPrincipal());
+      if(_user === null || _user === [] || _user.length <= 0){
+        /// Create new user, send request to ask for user's name from Unity
+        if(unityApp !== null){
+          unityApp.send("ChatManager", "SetNewUser", "");
+        }
+      } else {
+        /// Already created, set the data and get the user's groups
+        let _userGroups = await chatCoreCanister.get_user_groups();
+        //setUserGroups(_userGroups[0].groups);
+        let _publicChat = _userGroups[0].groups[0]
+        setChatSelected(_publicChat);
+        if(unityApp !== null){
+          unityApp.send("ChatManager", "Initialize", "");
+        }
+        /*setTimeout(() => {
+          getUserGroups();
+        }, 2000);*/
       }
-      /*setTimeout(() => {
-        getUserGroups();
-      }, 2000);*/
     }
   };
 
@@ -278,7 +310,7 @@ const ChatICAppProvider = ({ children }) => {
     }
   };
 
-  const value = { setUnityApp };
+  const value = { setUnityApp, setCoreCanisterExternal };
 
   return <ChatAppContext.Provider value={value}>{children}</ChatAppContext.Provider>;
 };
