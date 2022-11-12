@@ -245,8 +245,10 @@ const ChatICAppProvider = ({ children }) => {
     if(message !== null && message.trim() !== ""){
       try{
         let _send = await chatCanister.add_text_message(message);
+        unityApp.send("ChatManager", "MessageSent", "");
       } catch(err){
         console.log("Error sending message", err);
+        unityApp.send("ChatManager", "MessageSent", "");
       }
       //updateChatData();
     }
