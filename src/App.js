@@ -1172,7 +1172,7 @@ function App() {
       <Unity 
         unityContext={unityContext} 
         style={{
-          height: "auto",
+          height: "100%",
           width: "100%",
         }} 
       />
