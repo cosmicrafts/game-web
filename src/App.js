@@ -417,9 +417,14 @@ function App() {
     let _lang = (_pref.length > 0 && _pref[0].gamePlayerData !== "") ? _pref[0].gamePlayerData : JSON.stringify({"language": 0});
     let _char = (_pref.length > 0 && parseInt(_pref[0].playerCharID) !== 0 ) ? parseInt(_pref[0].playerCharID) : 1;
     unityContext.send("Dashboard", "GL_SetPlayerData", JSON.stringify(unityPlayerData));
-    unityContext.send("Dashboard", "GL_SetCharacterSelected", _char);
+    //unityContext.send("Dashboard", "GL_SetCharacterSelected", _char);
+    unityContext.send("Dashboard", "GL_SetCharacterSelected", 1);
     unityContext.send("Dashboard", "GL_SetConfigData", _lang);
     unityContext.send("Dashboard", "GL_SetProgressData", _prog);
+    console.log("Dashboard", "GL_SetPlayerData", JSON.stringify(unityPlayerData));
+    console.log("Dashboard", "GL_SetCharacterSelected", 1);
+    console.log("Dashboard", "GL_SetConfigData", _lang);
+    console.log("Dashboard", "GL_SetProgressData", _prog);
     setPlayerConfigData(_lang);
     setPlayerCharSelected(_char);
     //setIsLoading(false);
