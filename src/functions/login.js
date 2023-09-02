@@ -12,12 +12,16 @@ import { StoicIdentity } from "ic-stoic-identity";
 
 import { idlFactory } from "../declarations/cosmicrafts";
 import { createActor as betaNFTsActor } from "../declarations/nfts_beta_test";
+import { createActor as playerActor } from "../declarations/players_canister";
+import { createActor as scoreActor } from "../declarations/score_token";
 
-const canisterId = "onhpa-giaaa-aaaak-qaafa-cai";
-const betaCanisterId = "k7h5q-jyaaa-aaaan-qaaaq-cai";
-const whitelist = [canisterId, betaCanisterId, "fo275-uiaaa-aaaai-qe3lq-cai"];
+const canisterId       = "onhpa-giaaa-aaaak-qaafa-cai";
+const betaCanisterId   = "k7h5q-jyaaa-aaaan-qaaaq-cai";
+const playerCanisterId = "7saxw-4aaaa-aaaak-qadmq-cai";
+const scoreCanisterId  = "e3q2w-lqaaa-aaaai-aazva-cai";
+const whitelist        = [canisterId, betaCanisterId, playerCanisterId, "fo275-uiaaa-aaaai-qe3lq-cai"];
+const host             = 'https://raw.ic0.app/';
 //const host ='https://mainnet.dfinity.network';
-const host = 'https://raw.ic0.app/';
 
 // INTERNET IDENTITY
 export const loginII = async (setAII) => {
@@ -165,4 +169,20 @@ export const getBetaNFTsCanister = async (identity) => {
   }});
   console.log("BETA CANISTER", _betaNFTsCanister);
   return _betaNFTsCanister;
+};
+
+export const getPlayerCanister = async (identity) => {
+  const _playerCanister = playerActor(playerCanisterId, {agentOptions: {
+    host: host,
+    identity,
+  }});
+  return _playerCanister;
+};
+
+export const getScoreTokenCanister = async (identity) => {
+  const _scoreCanister = scoreActor(scoreCanisterId, {agentOptions: {
+    host: host,
+    identity,
+  }});
+  return _scoreCanister;
 };
